@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/jpeg" href="/favicon.jpg" />
+    <link rel="apple-touch-icon" href="/favicon.jpg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+    
+    <!-- Primary Meta Tags -->
+    <title>DocuSoft Store - Your Essential Documents and Software Provider</title>
+    <meta name="title" content="DocuSoft Store - Your Essential Documents and Software Provider" />
+    <meta name="description" content="Access thousands of premium documents and software instantly. Download professional templates, business documents, and powerful software tools. Secure M-Pesa payments." />
+    <meta name="keywords" content="documents, software, digital products, M-Pesa, downloads, business templates, productivity tools, Kenya" />
+    <meta name="author" content="DocuSoft" />
+    <meta name="robots" content="index, follow" />
+    
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#667eea" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://docusoftstore.pxxl.click/" />
+    <meta property="og:title" content="DocuSoft Store - Your Essential Documents and Software Provider" />
+    <meta property="og:description" content="Access thousands of premium documents and software instantly. Download professional templates, business documents, and powerful software tools." />
+    <meta property="og:image" content="/og-image.jpg" />
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://docusoftstore.pxxl.click/" />
+    <meta property="twitter:title" content="DocuSoft Store - Your Essential Documents and Software Provider" />
+    <meta property="twitter:description" content="Access thousands of premium documents and software instantly. Download professional templates, business documents, and powerful software tools." />
+    <meta property="twitter:image" content="/og-image.jpg" />
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    
+    <style>
+      /* Quick loading state */
+      .loading-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+      }
+      .loading-spinner {
+        width: 50px;
+        height: 50px;
+        border: 3px solid rgba(255,255,255,0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <div class="loading-screen">
+        <div class="loading-spinner"></div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
