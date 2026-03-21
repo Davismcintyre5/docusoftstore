@@ -29,6 +29,7 @@ const ItemDetailPage = ({ type }) => {
     const fetchItem = async () => {
       try {
         setLoading(true);
+        setError('');
         const { data } = await api.get(`/${getApiPath()}/${id}`);
         setItem(data);
       } catch (error) {
@@ -84,24 +85,12 @@ const ItemDetailPage = ({ type }) => {
     setError('');
     
     try {
-      console.log('⬇️ Downloading item:', item.title);
-      
       const storedToken = localStorage.getItem('token');
-      
-      if (!storedToken && !item.isFree) {
-        throw new Error('No authentication token found. Please login again.');
-      }
-      
-      const apiPath = getApiPath();
-      // FIXED: Correct URL format - ID before /download
-      const url = `/${apiPath}/${id}/download`;
-      console.log('Download URL:', url);
+      const url = `/${getApiPath()}/${id}/download`;
       
       const response = await api.get(url, {
         responseType: 'blob',
-        headers: storedToken ? {
-          'Authorization': `Bearer ${storedToken}`
-        } : {},
+        headers: storedToken ? { 'Authorization': `Bearer ${storedToken}` } : {},
         timeout: 60000
       });
 
@@ -126,7 +115,7 @@ const ItemDetailPage = ({ type }) => {
       window.URL.revokeObjectURL(url_blob);
 
     } catch (error) {
-      console.error('❌ Download failed:', error);
+      console.error('Download failed:', error);
       
       let errorMessage = 'Download failed';
       
@@ -155,6 +144,31 @@ const ItemDetailPage = ({ type }) => {
     }
   };
 
+  // Helper function to format file size
+  const formatFileSize = (bytes) => {
+    if (!bytes) return '';
+    const mb = bytes / 1024 / 1024;
+    return mb < 1 ? `${(bytes / 1024).toFixed(0)} KB` : `${mb.toFixed(2)} MB`;
+  };
+
+  // Get file icon based on extension
+  const getFileIcon = () => {
+    const ext = item?.fileInfo?.extension?.toLowerCase();
+    if (ext === '.pdf') return '📄';
+    if (ext === '.doc' || ext === '.docx') return '📝';
+    if (ext === '.zip' || ext === '.rar') return '🗜️';
+    if (ext === '.txt') return '📃';
+    if (type === 'software') return '💻';
+    return '📁';
+  };
+
+  const getFileTypeLabel = () => {
+    const ext = item?.fileInfo?.extension?.toLowerCase();
+    if (ext === '.zip' || ext === '.rar') return 'Archive File';
+    if (type === 'software') return 'Software Installer';
+    return 'Document File';
+  };
+
   if (loading) return <LoadingSpinner />;
   if (error) return <div className="error-message">{error}</div>;
   if (!item) return <div>Item not found</div>;
@@ -167,13 +181,51 @@ const ItemDetailPage = ({ type }) => {
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
       <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '30px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
         <h1 style={{ fontSize: '32px', fontWeight: '700', marginBottom: '16px' }}>{item.title}</h1>
-        <div style={{ display: 'flex', gap: '20px', marginBottom: '20px', fontSize: '14px' }}>
+        <div style={{ display: 'flex', gap: '20px', marginBottom: '20px', fontSize: '14px', flexWrap: 'wrap' }}>
           <span style={{ backgroundColor: '#e2e8f0', padding: '4px 12px', borderRadius: '20px' }}>
             {type === 'document' ? '📄 Document' : '💻 Software'}
           </span>
           <span>Category: <Link to={`/category/${item.category?.slug}`}>{item.category?.name}</Link></span>
         </div>
+        
         <p style={{ fontSize: '16px', lineHeight: '1.6', marginBottom: '24px' }}>{item.description}</p>
+        
+        {/* File Information Block - Shows file type, name, size */}
+        {item.fileInfo && (
+          <div style={{
+            backgroundColor: '#f7fafc',
+            padding: '16px',
+            borderRadius: '12px',
+            marginBottom: '24px',
+            border: '1px solid #e2e8f0'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+              <span style={{ fontSize: '28px' }}>{getFileIcon()}</span>
+              <div>
+                <div style={{ fontWeight: '600', color: '#2d3748', fontSize: '16px' }}>
+                  {getFileTypeLabel()}
+                </div>
+                <div style={{ fontSize: '13px', color: '#718096', wordBreak: 'break-all' }}>
+                  {item.fileInfo.originalName}
+                </div>
+              </div>
+            </div>
+            <div style={{ 
+              display: 'flex', 
+              gap: '16px', 
+              marginTop: '12px', 
+              paddingTop: '12px', 
+              borderTop: '1px solid #e2e8f0',
+              fontSize: '12px',
+              color: '#a0aec0'
+            }}>
+              <span>📦 Size: {formatFileSize(item.fileInfo.size)}</span>
+              <span>📁 Type: {item.fileInfo.extension?.toUpperCase() || 'FILE'}</span>
+              <span>⬇️ Downloads: {item.downloadCount || 0}</span>
+            </div>
+          </div>
+        )}
+        
         <div style={{ marginBottom: '24px' }}>
           {item.isFree ? (
             <span style={{ fontSize: '28px', fontWeight: '700', color: '#48bb78' }}>FREE</span>
@@ -185,24 +237,40 @@ const ItemDetailPage = ({ type }) => {
         {/* Status messages */}
         {!item.isFree && (
           <div style={{ marginBottom: '20px' }}>
-            {canDownload && <div style={{ backgroundColor: '#c6f6d5', padding: '12px', borderRadius: '8px', color: '#22543d' }}>✅ You own this item</div>}
-            {isPending && <div style={{ backgroundColor: '#feebc8', padding: '12px', borderRadius: '8px', color: '#7b341e' }}>⏳ Payment pending verification</div>}
-            {isRejected && <div style={{ backgroundColor: '#fed7d7', padding: '12px', borderRadius: '8px', color: '#c53030' }}>❌ Payment was rejected</div>}
-            {!canDownload && !isPending && !isRejected && <div style={{ backgroundColor: '#f7fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', color: '#4a5568' }}>🔒 You need to purchase this item to download it</div>}
+            {canDownload && (
+              <div style={{ backgroundColor: '#c6f6d5', padding: '12px', borderRadius: '8px', color: '#22543d', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>✅</span> You own this item
+              </div>
+            )}
+            {isPending && (
+              <div style={{ backgroundColor: '#feebc8', padding: '12px', borderRadius: '8px', color: '#7b341e', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>⏳</span> Payment pending verification
+              </div>
+            )}
+            {isRejected && (
+              <div style={{ backgroundColor: '#fed7d7', padding: '12px', borderRadius: '8px', color: '#c53030', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>❌</span> Payment was rejected
+              </div>
+            )}
+            {!canDownload && !isPending && !isRejected && (
+              <div style={{ backgroundColor: '#f7fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', color: '#4a5568', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>🔒</span> You need to purchase this item to download it
+              </div>
+            )}
           </div>
         )}
 
         {/* Authentication Status */}
         <div style={{ marginBottom: '20px' }}>
           {isAuthenticated ? (
-            <div style={{ backgroundColor: '#f0f9ff', padding: '12px', borderRadius: '8px', color: '#0369a1', fontSize: '14px' }}>
-              👤 Logged in as: <strong>{user?.email}</strong>
-              {canDownload && <span style={{ marginLeft: '12px', backgroundColor: '#48bb78', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '11px' }}>✓ Owned</span>}
+            <div style={{ backgroundColor: '#f0f9ff', padding: '12px', borderRadius: '8px', color: '#0369a1', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <span>👤</span> Logged in as: <strong>{user?.email}</strong>
+              {canDownload && <span style={{ marginLeft: 'auto', backgroundColor: '#48bb78', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '11px' }}>✓ Owned</span>}
             </div>
           ) : (
-            <div style={{ backgroundColor: '#fff7ed', padding: '12px', borderRadius: '8px', color: '#9a3412', fontSize: '14px' }}>
-              🔒 Not logged in
-              <Link to="/login" style={{ marginLeft: '12px', color: '#667eea', textDecoration: 'none', fontWeight: '500' }}>Login</Link>
+            <div style={{ backgroundColor: '#fff7ed', padding: '12px', borderRadius: '8px', color: '#9a3412', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <span>🔒</span> Not logged in
+              <Link to="/login" style={{ marginLeft: 'auto', color: '#667eea', textDecoration: 'none', fontWeight: '500' }}>Login</Link>
             </div>
           )}
         </div>
@@ -213,7 +281,22 @@ const ItemDetailPage = ({ type }) => {
             <button 
               onClick={handleDownload} 
               disabled={downloading} 
-              style={{ padding: '14px 28px', backgroundColor: '#48bb78', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', minHeight: '48px', flex: '1' }}
+              style={{ 
+                flex: '1', 
+                padding: '14px 28px', 
+                backgroundColor: '#48bb78', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '8px', 
+                fontWeight: '600', 
+                cursor: downloading ? 'not-allowed' : 'pointer', 
+                minHeight: '48px',
+                opacity: downloading ? 0.7 : 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
             >
               {downloading ? '⏳ Downloading...' : '⬇️ Download Now'}
             </button>
@@ -221,7 +304,22 @@ const ItemDetailPage = ({ type }) => {
             <button 
               onClick={handleBuyNow} 
               disabled={checkingStatus || isPending} 
-              style={{ padding: '14px 28px', backgroundColor: '#667eea', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', minHeight: '48px', flex: '1' }}
+              style={{ 
+                flex: '1', 
+                padding: '14px 28px', 
+                backgroundColor: '#667eea', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '8px', 
+                fontWeight: '600', 
+                cursor: (checkingStatus || isPending) ? 'not-allowed' : 'pointer', 
+                minHeight: '48px',
+                opacity: (checkingStatus || isPending) ? 0.7 : 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
             >
               {checkingStatus ? '⏳ Checking...' : isPending ? '⏳ Pending Verification' : `💰 Buy Now ${!item.isFree ? `- ${formatKES(item.price)}` : ''}`}
             </button>
@@ -229,13 +327,28 @@ const ItemDetailPage = ({ type }) => {
           <WhatsAppButton message={`Hello, I have a question about ${item.title}`} text="💬 Ask Question" />
         </div>
 
-        {!item.isFree && !canDownload && (
+        {!item.isFree && !canDownload && !isPending && !isRejected && (
           <button 
             onClick={checkPurchaseStatus} 
-            style={{ padding: '10px 20px', backgroundColor: '#4299e1', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', width: '100%' }}
+            style={{ 
+              padding: '10px 20px', 
+              backgroundColor: '#4299e1', 
+              color: 'white', 
+              border: 'none', 
+              borderRadius: '8px', 
+              cursor: 'pointer', 
+              width: '100%',
+              fontWeight: '500'
+            }}
           >
             🔄 Check Purchase Status
           </button>
+        )}
+
+        {error && (
+          <div style={{ backgroundColor: '#fed7d7', padding: '12px', borderRadius: '8px', marginTop: '16px', color: '#c53030', fontSize: '14px', textAlign: 'center' }}>
+            ⚠️ {error}
+          </div>
         )}
       </div>
 
