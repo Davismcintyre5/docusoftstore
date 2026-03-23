@@ -10,9 +10,9 @@ export const initiateSTKPush = async (itemId, itemType, phoneNumber) => {
   return data;
 };
 
-export const uploadScreenshot = async (transactionId, screenshotUrl) => {
-  console.log('📤 Uploading screenshot URL:', screenshotUrl);
-  const { data } = await api.post(`/payments/screenshot/${transactionId}`, { screenshotUrl });
+export const uploadScreenshot = async (transactionId, message) => {
+  // ✅ Send the message as a JSON object with key "message"
+  const { data } = await api.post(`/payments/screenshot/${transactionId}`, { message });
   return data;
 };
 

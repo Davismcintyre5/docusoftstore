@@ -18,6 +18,7 @@ const PaymentModal = ({ item, onClose, onSuccess }) => {
 
   const businessNumber = settings?.businessPhoneNumber || '0768784909';
 
+  // STK Push
   const handleSTKPush = async (phone) => {
     if (!settings?.enableSTKPush) {
       alert('STK Push is currently disabled. Please use manual payment.');
@@ -44,6 +45,7 @@ const PaymentModal = ({ item, onClose, onSuccess }) => {
     }
   };
 
+  // Manual payment initiation
   const handleManualPayment = async () => {
     if (!settings?.enableManualPayment) {
       alert('Manual payment is currently disabled. Please use STK Push.');
@@ -70,17 +72,19 @@ const PaymentModal = ({ item, onClose, onSuccess }) => {
     }
   };
 
+  // Copy business number to clipboard
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Called by PaymentConfirmation when user submits the message
   const handlePaymentConfirmation = async (message) => {
     setLoading(true);
     setError('');
     try {
-      await uploadScreenshot(transactionId, message); // now sends message instead of URL
+      await uploadScreenshot(transactionId, message);
       alert('✅ Payment confirmation submitted! Awaiting verification.');
       if (onSuccess) onSuccess();
       setTimeout(() => onClose(), 2000);
@@ -177,9 +181,13 @@ const PaymentModal = ({ item, onClose, onSuccess }) => {
             <div style={{ textAlign: 'center', padding: '20px' }}>
               <div style={{ fontSize: '48px', marginBottom: '16px' }}>📱</div>
               <h3 style={{ fontSize: '20px', color: '#2d3748', marginBottom: '12px' }}>STK Push Sent!</h3>
-              <p style={{ color: '#718096', marginBottom: '20px' }}>Please check your phone and enter your M-Pesa PIN to complete the payment.</p>
+              <p style={{ color: '#718096', marginBottom: '20px' }}>
+                Please check your phone and enter your M-Pesa PIN to complete the payment.
+              </p>
               <div className="spinner" style={{ margin: '0 auto' }}></div>
-              <p style={{ color: '#a0aec0', fontSize: '14px', marginTop: '12px', marginBottom: '20px' }}>Waiting for payment confirmation...</p>
+              <p style={{ color: '#a0aec0', fontSize: '14px', marginTop: '12px', marginBottom: '20px' }}>
+                Waiting for payment confirmation...
+              </p>
               <WhatsAppButton
                 message={`Hello, I'm trying to pay ${formatKES(item.price)} for ${item.title} via STK Push but not receiving the prompt.`}
               />
@@ -189,7 +197,6 @@ const PaymentModal = ({ item, onClose, onSuccess }) => {
           {/* Manual Payment Screen */}
           {method === 'manual' && transactionId && (
             <>
-              {/* Payment Instructions from Settings */}
               <div style={{ backgroundColor: '#ebf8ff', padding: '16px', borderRadius: '8px', marginBottom: '20px' }}>
                 <h4 style={{ color: '#2c5282', marginBottom: '8px' }}>📋 Payment Instructions:</h4>
                 <p style={{ color: '#2d3748', fontSize: '14px' }}>
@@ -202,7 +209,7 @@ const PaymentModal = ({ item, onClose, onSuccess }) => {
                   💵 Send Money to Owner
                 </h4>
 
-                {/* M‑Pesa Details Card */}
+                {/* M-Pesa Details */}
                 <div
                   style={{
                     backgroundColor: '#1a202c',
@@ -243,7 +250,7 @@ const PaymentModal = ({ item, onClose, onSuccess }) => {
                   </button>
                 </div>
 
-                {/* Step‑by‑Step Guide */}
+                {/* Step-by-Step Guide */}
                 <div
                   style={{
                     backgroundColor: '#f7fafc',
@@ -259,17 +266,17 @@ const PaymentModal = ({ item, onClose, onSuccess }) => {
                   <ol style={{ margin: 0, paddingLeft: '20px', lineHeight: '1.6', color: '#4a5568' }}>
                     <li>Go to <strong>Safaricom M-Pesa</strong> on your phone</li>
                     <li>Select <strong>Send Money</strong></li>
-         {/*            <li>Select <strong>Pay Bill</strong> (if using Paybill) or <strong>Buy Goods & Services</strong> (if using Till)</li>  */}
+      {/*               <li>Select <strong>Pay Bill</strong> (if using Paybill) or <strong>Buy Goods & Services</strong> (if using Till)</li>    */}
                     <li>Enter Number: <strong>{businessNumber}</strong></li>
-         {/*           <li>Enter Account Number: <strong>DocuSoft</strong></li>                */}       
+        {/*              <li>Enter Account Number: <strong>DocuSoft</strong></li>                                                                */}
                     <li>Enter Amount: <strong>{formatKES(item.price)}</strong></li>
                     <li>Enter your M-Pesa PIN and confirm</li>
                     <li>Wait for confirmation SMS from M-Pesa</li>
-                    <li>Then describe your payment below</li>
+                    <li>Then paste the confirmation message or transaction code below</li>
                   </ol>
                 </div>
 
-                {/* Payment Confirmation */}
+                {/* Payment Confirmation (textarea + submit) */}
                 <PaymentConfirmation onConfirm={handlePaymentConfirmation} loading={loading} />
 
                 {/* WhatsApp Support */}
