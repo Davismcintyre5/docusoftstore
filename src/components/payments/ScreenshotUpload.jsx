@@ -37,22 +37,12 @@ const ScreenshotUpload = ({ onUpload, loading }) => {
     setError('');
 
     try {
-      // Upload to GitHub via backend
       const formData = new FormData();
-      formData.append('file', file);
-      const uploadRes = await api.post('/upload/screenshot', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        timeout: 60000
-      });
-
-      const screenshotUrl = uploadRes.data.url;
-      if (!screenshotUrl) throw new Error('No URL returned from server');
-
-      // Pass the GitHub URL to the parent component
-      await onUpload(screenshotUrl);
+      formData.append('screenshot', file);
+      await onUpload(formData); // parent will handle the API call
     } catch (error) {
       console.error('Upload error:', error);
-      setError(error.response?.data?.message || error.message || 'Upload failed');
+      setError(error.response?.data?.message || 'Upload failed');
     } finally {
       setUploading(false);
     }

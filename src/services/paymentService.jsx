@@ -10,9 +10,17 @@ export const initiateSTKPush = async (itemId, itemType, phoneNumber) => {
   return data;
 };
 
-export const uploadScreenshot = async (transactionId, message) => {
-  // ✅ Send the message as a JSON object with key "message"
-  const { data } = await api.post(`/payments/screenshot/${transactionId}`, { message });
+// Upload screenshot (multipart/form-data)
+export const uploadScreenshot = async (transactionId, formData) => {
+  const { data } = await api.post(`/payments/screenshot/${transactionId}`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return data;
+};
+
+// Submit payment confirmation (JSON)
+export const submitPaymentConfirmation = async (transactionId, message) => {
+  const { data } = await api.post(`/payments/confirmation/${transactionId}`, { message });
   return data;
 };
 

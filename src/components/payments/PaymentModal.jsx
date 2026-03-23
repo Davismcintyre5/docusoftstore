@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import MpesaForm from './MpesaForm';
+import ScreenshotUpload from './ScreenshotUpload';
 import PaymentConfirmation from './PaymentConfirmation';
 import WhatsAppButton from '../whatsapp/WhatsAppButton';
 import { useAuth } from '../../context/AuthContext';
 import { useSettings } from '../../context/SettingsContext';
-import { initiateSTKPush, initiateManualPayment, uploadScreenshot } from '../../services/paymentService';
+import { initiateSTKPush, initiateManualPayment, uploadScreenshot, submitPaymentConfirmation } from '../../services/paymentService';
 import { formatKES } from '../../utils/formatters';
 
 const PaymentModal = ({ item, onClose, onSuccess }) => {
@@ -13,12 +14,12 @@ const PaymentModal = ({ item, onClose, onSuccess }) => {
   const [transactionId, setTransactionId] = useState(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
+  const [confirmationType, setConfirmationType] = useState('screenshot'); // 'screenshot' or 'message'
   const { user } = useAuth();
   const { settings, formatPaymentInstructions } = useSettings();
 
   const businessNumber = settings?.businessPhoneNumber || '0768784909';
 
-  // STK Push
   const handleSTKPush = async (phone) => {
     if (!settings?.enableSTKPush) {
       alert('STK Push is currently disabled. Please use manual payment.');
@@ -45,7 +46,6 @@ const PaymentModal = ({ item, onClose, onSuccess }) => {
     }
   };
 
-  // Manual payment initiation
   const handleManualPayment = async () => {
     if (!settings?.enableManualPayment) {
       alert('Manual payment is currently disabled. Please use STK Push.');
@@ -72,20 +72,36 @@ const PaymentModal = ({ item, onClose, onSuccess }) => {
     }
   };
 
-  // Copy business number to clipboard
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Called by PaymentConfirmation when user submits the message
-  const handlePaymentConfirmation = async (message) => {
+  const handleScreenshotUpload = async (formData) => {
     setLoading(true);
     setError('');
     try {
-      await uploadScreenshot(transactionId, message);
-      alert('✅ Payment confirmation submitted! Awaiting verification.');
+      await uploadScreenshot(transactionId, formData);
+      alert('✅ Screenshot uploaded! Awaiting verification.');
+      if (onSuccess) onSuccess();
+      setTimeout(() => onClose(), 2000);
+    } catch (error) {
+      console.error('Screenshot upload error:', error);
+      const msg = error.response?.data?.message || 'Upload failed';
+      setError(msg);
+      alert(`❌ ${msg}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMessageConfirmation = async (message) => {
+    setLoading(true);
+    setError('');
+    try {
+      await submitPaymentConfirmation(transactionId, message);
+      alert('✅ Confirmation message received! Awaiting verification.');
       if (onSuccess) onSuccess();
       setTimeout(() => onClose(), 2000);
     } catch (error) {
@@ -266,18 +282,56 @@ const PaymentModal = ({ item, onClose, onSuccess }) => {
                   <ol style={{ margin: 0, paddingLeft: '20px', lineHeight: '1.6', color: '#4a5568' }}>
                     <li>Go to <strong>Safaricom M-Pesa</strong> on your phone</li>
                     <li>Select <strong>Send Money</strong></li>
-      {/*               <li>Select <strong>Pay Bill</strong> (if using Paybill) or <strong>Buy Goods & Services</strong> (if using Till)</li>    */}
-                    <li>Enter Number: <strong>{businessNumber}</strong></li>
-        {/*              <li>Enter Account Number: <strong>DocuSoft</strong></li>                                                                */}
+            {/*        <li>Select <strong>Pay Bill</strong> (if using Paybill) or <strong>Buy Goods & Services</strong> (if using Till)</li>      */}
+                    <li>Enter Business Number: <strong>{businessNumber}</strong></li>
+           {/*         <li>Enter Account Number: <strong>DocuSoft</strong></li>                                                                   */}
                     <li>Enter Amount: <strong>{formatKES(item.price)}</strong></li>
                     <li>Enter your M-Pesa PIN and confirm</li>
                     <li>Wait for confirmation SMS from M-Pesa</li>
-                    <li>Then paste the confirmation message or transaction code below</li>
                   </ol>
                 </div>
 
-                {/* Payment Confirmation (textarea + submit) */}
-                <PaymentConfirmation onConfirm={handlePaymentConfirmation} loading={loading} />
+                {/* Confirmation Type Toggle */}
+                <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+                  <button
+                    onClick={() => setConfirmationType('screenshot')}
+                    style={{
+                      flex: 1,
+                      padding: '8px',
+                      backgroundColor: confirmationType === 'screenshot' ? '#667eea' : '#e2e8f0',
+                      color: confirmationType === 'screenshot' ? 'white' : '#4a5568',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontWeight: '500',
+                    }}
+                  >
+                    📸 Upload Screenshot
+                  </button>
+                  <button
+                    onClick={() => setConfirmationType('message')}
+                    style={{
+                      flex: 1,
+                      padding: '8px',
+                      backgroundColor: confirmationType === 'message' ? '#667eea' : '#e2e8f0',
+                      color: confirmationType === 'message' ? 'white' : '#4a5568',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontWeight: '500',
+                    }}
+                  >
+                    ✍️ Paste Confirmation
+                  </button>
+                </div>
+
+                {confirmationType === 'screenshot' && (
+                  <ScreenshotUpload onUpload={handleScreenshotUpload} loading={loading} />
+                )}
+
+                {confirmationType === 'message' && (
+                  <PaymentConfirmation onConfirm={handleMessageConfirmation} loading={loading} />
+                )}
 
                 {/* WhatsApp Support */}
                 <div style={{ marginTop: '20px', textAlign: 'center' }}>
@@ -302,7 +356,7 @@ const PaymentModal = ({ item, onClose, onSuccess }) => {
                   }}
                 >
                   <p>⏳ Your payment will be verified by the admin within 24 hours.</p>
-                  <p>You will receive a confirmation once approved.</p>
+                  <p>You will receive a confirmation once approved and download.</p>
                 </div>
               </div>
             </>

@@ -5,30 +5,28 @@ const PaymentConfirmation = ({ onConfirm, loading }) => {
   const [error, setError] = useState('');
 
   const handleSubmit = () => {
-    const trimmed = message.trim();
-    if (!trimmed) {
-      setError('Please paste the M-Pesa confirmation message or enter the transaction code');
+    if (!message.trim()) {
+      setError('Please paste your M-Pesa confirmation message or transaction code.');
       return;
     }
     setError('');
-    onConfirm(trimmed);
+    onConfirm(message);
   };
 
   return (
     <div>
       <div className="form-group">
-        <label>📱 M-Pesa Confirmation</label>
+        <label>📝 M-Pesa Confirmation Message</label>
         <textarea
           className="form-control"
-          rows="3"
+          rows="4"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder="Paste the M-Pesa confirmation message you received or enter the transaction code here..."
+          placeholder="Paste the M-Pesa confirmation SMS or transaction code here. Example: 'Payment of KES 500 to DocuSoft confirmed. Ref: QWER1234'"
           disabled={loading}
-          style={{ fontFamily: 'monospace', fontSize: '13px' }}
         />
         <small style={{ color: '#718096', display: 'block', marginTop: '4px' }}>
-          Example: "Confirmed. KES 500.00 sent to DocuSoft on 23/03/2026 at 12:30 PM. New balance: KES 2,500.00. Transaction code: QWER1234"
+          Paste the entire confirmation SMS or the transaction code.
         </small>
         {error && <small style={{ color: '#e53e3e', display: 'block', marginTop: '4px' }}>{error}</small>}
       </div>
@@ -38,7 +36,7 @@ const PaymentConfirmation = ({ onConfirm, loading }) => {
         style={{ width: '100%', backgroundColor: '#48bb78' }}
         disabled={loading}
       >
-        {loading ? 'Submitting...' : 'Confirm Payment'}
+        {loading ? 'Submitting...' : 'Submit Confirmation'}
       </button>
     </div>
   );
