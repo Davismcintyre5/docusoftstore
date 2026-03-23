@@ -65,6 +65,7 @@ const ItemDetailPage = ({ type }) => {
     }
   };
 
+  // FIXED: Direct window.location for downloads - works with redirects
   const handleDownload = () => {
     if (!item.isFree && !isAuthenticated) {
       alert('Please login to download paid items');
@@ -79,23 +80,26 @@ const ItemDetailPage = ({ type }) => {
       const apiPath = getApiPath();
       let url = `/api/${apiPath}/${id}/download`;
       
+      // For paid items, add token as query parameter
       if (!item.isFree) {
         const token = localStorage.getItem('token');
-        if (token) url += `?token=${encodeURIComponent(token)}`;
-        else throw new Error('No authentication token found');
+        if (token) {
+          url += `?token=${encodeURIComponent(token)}`;
+        } else {
+          throw new Error('No authentication token found');
+        }
       }
       
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      iframe.src = url;
-      document.body.appendChild(iframe);
+      console.log('⬇️ Download URL:', url);
       
-      setTimeout(() => {
-        if (document.body.contains(iframe)) document.body.removeChild(iframe);
-        setDownloading(false);
-      }, 5000);
+      // Use window.location.href - browser follows redirects automatically
+      window.location.href = url;
+      
+      // Reset downloading flag after a delay (since page may not reload)
+      setTimeout(() => setDownloading(false), 3000);
       
     } catch (error) {
+      console.error('Download error:', error);
       setError('Download failed. Please try again.');
       setDownloading(false);
     }
