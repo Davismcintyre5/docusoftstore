@@ -77,9 +77,8 @@ const ItemDetailPage = ({ type }) => {
     }
   };
 
-  // ----- DOWNLOAD FUNCTION (FIXED) -----
+  // ----- DOWNLOAD FUNCTION (PRODUCTION FIX) -----
   const handleDownload = () => {
-    // Check authentication for paid items
     if (!item.isFree && !isAuthenticated) {
       alert('Please login to download paid items');
       navigate('/login', { state: { from: `/${type}/${id}` } });
@@ -91,8 +90,9 @@ const ItemDetailPage = ({ type }) => {
 
     try {
       const apiPath = getApiPath();
-      // Construct the URL with /api prefix (Vite proxy will forward it)
-      let url = `/api/${apiPath}/${id}/download`;
+      // Use the API base URL from environment (production) or relative path (dev via proxy)
+      const baseUrl = import.meta.env.VITE_API_URL || '/api';
+      let url = `${baseUrl}/${apiPath}/${id}/download`;
 
       // For paid items, add token as query parameter
       if (!item.isFree) {
@@ -105,16 +105,14 @@ const ItemDetailPage = ({ type }) => {
         }
       }
 
-      console.log('⬇️ Download URL:', url);
+      console.log('⬇️ Full download URL:', url);
       console.log('📦 Item:', item.title, 'Free:', item.isFree, 'GitHub URL:', item.fileUrl);
 
-      // Use window.location.href – the browser will follow the redirect
+      // Direct navigation – browser will follow redirects
       window.location.href = url;
 
-      // Reset downloading state after a short delay (download may start immediately)
-      setTimeout(() => {
-        setDownloading(false);
-      }, 3000);
+      // Reset downloading state after a short delay
+      setTimeout(() => setDownloading(false), 3000);
     } catch (err) {
       console.error('Download error:', err);
       setError('Download failed. Please try again.');
