@@ -10,12 +10,9 @@ export const initiateSTKPush = async (itemId, itemType, phoneNumber) => {
   return data;
 };
 
-export const uploadScreenshot = async (transactionId, file) => {
-  const formData = new FormData();
-  formData.append('screenshot', file);
-  const { data } = await api.post(`/payments/screenshot/${transactionId}`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+export const uploadScreenshot = async (transactionId, screenshotUrl) => {
+  console.log('📤 Uploading screenshot URL:', screenshotUrl);
+  const { data } = await api.post(`/payments/screenshot/${transactionId}`, { screenshotUrl });
   return data;
 };
 

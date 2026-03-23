@@ -1,27 +1,22 @@
 import React, { useState } from 'react';
+import api from '../../services/api';
 
 const ScreenshotUpload = ({ onUpload, loading }) => {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [error, setError] = useState('');
+  const [uploading, setUploading] = useState(false);
 
   const handleFileChange = (e) => {
     const selected = e.target.files[0];
     if (!selected) return;
 
-    // Validate file type
     if (!selected.type.startsWith('image/')) {
-      setError('Please upload an image file (JPG, PNG, etc.)');
-      setFile(null);
-      setPreview(null);
+      setError('Please upload an image file');
       return;
     }
-
-    // Validate size (max 5MB)
-    if (selected.size > 5 * 1024 * 1024) {
-      setError('File too large. Max size 5MB.');
-      setFile(null);
-      setPreview(null);
+    if (selected.size > 10 * 1024 * 1024) {
+      setError('File too large. Max 10MB');
       return;
     }
 
@@ -32,16 +27,39 @@ const ScreenshotUpload = ({ onUpload, loading }) => {
     reader.readAsDataURL(selected);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!file) {
       setError('Please select a screenshot');
       return;
     }
-    onUpload(file);
+
+    setUploading(true);
+    setError('');
+
+    try {
+      // Upload to GitHub via backend
+      const formData = new FormData();
+      formData.append('file', file);
+      const uploadRes = await api.post('/upload/screenshot', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 60000
+      });
+
+      const screenshotUrl = uploadRes.data.url;
+      if (!screenshotUrl) throw new Error('No URL returned from server');
+
+      // Pass the GitHub URL to the parent component
+      await onUpload(screenshotUrl);
+    } catch (error) {
+      console.error('Upload error:', error);
+      setError(error.response?.data?.message || error.message || 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
-    <div style={{ marginTop: '20px' }}>
+    <div>
       <div className="form-group">
         <label>📸 Upload Payment Screenshot</label>
         <input
@@ -49,15 +67,17 @@ const ScreenshotUpload = ({ onUpload, loading }) => {
           accept="image/*"
           className="form-control"
           onChange={handleFileChange}
-          disabled={loading}
+          disabled={uploading || loading}
         />
-        {error && <small style={{ color: '#e53e3e', marginTop: '4px', display: 'block' }}>{error}</small>}
-        <small style={{ color: '#718096' }}>Upload a clear screenshot of your M-Pesa payment confirmation</small>
+        {error && <small style={{ color: '#e53e3e', display: 'block', marginTop: '4px' }}>{error}</small>}
+        <small style={{ color: '#718096', display: 'block', marginTop: '4px' }}>
+          Max size: 10MB. Supported: JPG, PNG, GIF, WEBP
+        </small>
       </div>
 
       {preview && (
-        <div style={{ marginBottom: '16px', textAlign: 'center' }}>
-          <img src={preview} alt="Preview" style={{ maxWidth: '100%', maxHeight: '150px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+        <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+          <img src={preview} alt="Preview" style={{ maxWidth: '100%', maxHeight: '150px', borderRadius: '8px' }} />
         </div>
       )}
 
@@ -65,9 +85,9 @@ const ScreenshotUpload = ({ onUpload, loading }) => {
         onClick={handleSubmit}
         className="btn btn-primary"
         style={{ width: '100%', backgroundColor: '#48bb78' }}
-        disabled={loading || !file}
+        disabled={uploading || loading || !file}
       >
-        {loading ? 'Uploading...' : 'Upload Screenshot'}
+        {uploading ? 'Uploading...' : 'Upload Screenshot'}
       </button>
     </div>
   );

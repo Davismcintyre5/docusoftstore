@@ -24,16 +24,13 @@ const ItemDetailPage = ({ type }) => {
 
   const getApiPath = () => type === 'document' ? 'documents' : 'software';
 
-  // Fetch item details
   useEffect(() => {
     const fetchItem = async () => {
       try {
         setLoading(true);
-        setError('');
         const { data } = await api.get(`/${getApiPath()}/${id}`);
         setItem(data);
       } catch (error) {
-        console.error('Failed to fetch item:', error);
         setError(error.response?.data?.message || 'Failed to load item');
       } finally {
         setLoading(false);
@@ -42,7 +39,6 @@ const ItemDetailPage = ({ type }) => {
     if (id) fetchItem();
   }, [id, type]);
 
-  // Check purchase status
   useEffect(() => {
     if (user && item) checkPurchaseStatus();
   }, [user, item, refreshCount]);
@@ -62,19 +58,14 @@ const ItemDetailPage = ({ type }) => {
 
   const handleBuyNow = () => {
     if (!user) {
-      sessionStorage.setItem('pendingPurchase', JSON.stringify({
-        itemId: id,
-        itemType: type,
-        price: item.price,
-        title: item.title
-      }));
+      sessionStorage.setItem('pendingPurchase', JSON.stringify({ itemId: id, itemType: type, price: item.price, title: item.title }));
       navigate('/login', { state: { from: `/checkout/${id}` } });
     } else {
       setShowPaymentModal(true);
     }
   };
 
-  const handleDownload = async () => {
+  const handleDownload = () => {
     if (!item.isFree && !isAuthenticated) {
       alert('Please login to download paid items');
       navigate('/login', { state: { from: `/${type}/${id}` } });
@@ -85,88 +76,35 @@ const ItemDetailPage = ({ type }) => {
     setError('');
     
     try {
-      const storedToken = localStorage.getItem('token');
-      const url = `/${getApiPath()}/${id}/download`;
+      const apiPath = getApiPath();
+      let url = `/api/${apiPath}/${id}/download`;
       
-      const response = await api.get(url, {
-        responseType: 'blob',
-        headers: storedToken ? { 'Authorization': `Bearer ${storedToken}` } : {},
-        timeout: 60000
-      });
-
-      const contentDisposition = response.headers['content-disposition'];
-      let filename = item.fileInfo?.originalName || 
-                     item.title + (type === 'document' ? '.pdf' : '.zip');
-      
-      if (contentDisposition) {
-        const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
-        if (match && match[1]) {
-          filename = match[1].replace(/['"]/g, '');
-        }
+      if (!item.isFree) {
+        const token = localStorage.getItem('token');
+        if (token) url += `?token=${encodeURIComponent(token)}`;
+        else throw new Error('No authentication token found');
       }
-
-      const url_blob = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url_blob;
-      link.setAttribute('download', decodeURIComponent(filename));
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url_blob);
-
+      
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = url;
+      document.body.appendChild(iframe);
+      
+      setTimeout(() => {
+        if (document.body.contains(iframe)) document.body.removeChild(iframe);
+        setDownloading(false);
+      }, 5000);
+      
     } catch (error) {
-      console.error('Download failed:', error);
-      
-      let errorMessage = 'Download failed';
-      
-      if (error.response) {
-        if (error.response.status === 401) {
-          errorMessage = 'Your session has expired. Please login again.';
-          localStorage.removeItem('token');
-        } else if (error.response.status === 403) {
-          errorMessage = 'You have not purchased this item';
-        } else if (error.response.status === 404) {
-          errorMessage = 'File not found on server';
-        } else {
-          errorMessage = error.response.data?.message || `Error ${error.response.status}`;
-        }
-      } else if (error.request) {
-        errorMessage = 'Cannot connect to server. Please check your connection.';
-      } else {
-        errorMessage = error.message;
-      }
-      
-      setError(errorMessage);
-      alert(`❌ ${errorMessage}`);
-      
-    } finally {
+      setError('Download failed. Please try again.');
       setDownloading(false);
     }
   };
 
-  // Helper function to format file size
   const formatFileSize = (bytes) => {
     if (!bytes) return '';
     const mb = bytes / 1024 / 1024;
     return mb < 1 ? `${(bytes / 1024).toFixed(0)} KB` : `${mb.toFixed(2)} MB`;
-  };
-
-  // Get file icon based on extension
-  const getFileIcon = () => {
-    const ext = item?.fileInfo?.extension?.toLowerCase();
-    if (ext === '.pdf') return '📄';
-    if (ext === '.doc' || ext === '.docx') return '📝';
-    if (ext === '.zip' || ext === '.rar') return '🗜️';
-    if (ext === '.txt') return '📃';
-    if (type === 'software') return '💻';
-    return '📁';
-  };
-
-  const getFileTypeLabel = () => {
-    const ext = item?.fileInfo?.extension?.toLowerCase();
-    if (ext === '.zip' || ext === '.rar') return 'Archive File';
-    if (type === 'software') return 'Software Installer';
-    return 'Document File';
   };
 
   if (loading) return <LoadingSpinner />;
@@ -187,38 +125,18 @@ const ItemDetailPage = ({ type }) => {
           </span>
           <span>Category: <Link to={`/category/${item.category?.slug}`}>{item.category?.name}</Link></span>
         </div>
-        
         <p style={{ fontSize: '16px', lineHeight: '1.6', marginBottom: '24px' }}>{item.description}</p>
         
-        {/* File Information Block - Shows file type, name, size */}
         {item.fileInfo && (
-          <div style={{
-            backgroundColor: '#f7fafc',
-            padding: '16px',
-            borderRadius: '12px',
-            marginBottom: '24px',
-            border: '1px solid #e2e8f0'
-          }}>
+          <div style={{ backgroundColor: '#f7fafc', padding: '16px', borderRadius: '12px', marginBottom: '24px', border: '1px solid #e2e8f0' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-              <span style={{ fontSize: '28px' }}>{getFileIcon()}</span>
+              <span style={{ fontSize: '28px' }}>{item.fileInfo.extension === '.zip' || item.fileInfo.extension === '.rar' ? '🗜️' : '📄'}</span>
               <div>
-                <div style={{ fontWeight: '600', color: '#2d3748', fontSize: '16px' }}>
-                  {getFileTypeLabel()}
-                </div>
-                <div style={{ fontSize: '13px', color: '#718096', wordBreak: 'break-all' }}>
-                  {item.fileInfo.originalName}
-                </div>
+                <div style={{ fontWeight: '600', color: '#2d3748' }}>{item.fileInfo.extension === '.zip' || item.fileInfo.extension === '.rar' ? 'Archive File' : 'Document File'}</div>
+                <div style={{ fontSize: '13px', color: '#718096', wordBreak: 'break-all' }}>{item.fileInfo.originalName}</div>
               </div>
             </div>
-            <div style={{ 
-              display: 'flex', 
-              gap: '16px', 
-              marginTop: '12px', 
-              paddingTop: '12px', 
-              borderTop: '1px solid #e2e8f0',
-              fontSize: '12px',
-              color: '#a0aec0'
-            }}>
+            <div style={{ display: 'flex', gap: '16px', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #e2e8f0', fontSize: '12px', color: '#a0aec0' }}>
               <span>📦 Size: {formatFileSize(item.fileInfo.size)}</span>
               <span>📁 Type: {item.fileInfo.extension?.toUpperCase() || 'FILE'}</span>
               <span>⬇️ Downloads: {item.downloadCount || 0}</span>
@@ -227,40 +145,18 @@ const ItemDetailPage = ({ type }) => {
         )}
         
         <div style={{ marginBottom: '24px' }}>
-          {item.isFree ? (
-            <span style={{ fontSize: '28px', fontWeight: '700', color: '#48bb78' }}>FREE</span>
-          ) : (
-            <span style={{ fontSize: '32px', fontWeight: '700', color: '#667eea' }}>{formatKES(item.price)}</span>
-          )}
+          {item.isFree ? <span style={{ fontSize: '28px', fontWeight: '700', color: '#48bb78' }}>FREE</span> : <span style={{ fontSize: '32px', fontWeight: '700', color: '#667eea' }}>{formatKES(item.price)}</span>}
         </div>
 
-        {/* Status messages */}
         {!item.isFree && (
           <div style={{ marginBottom: '20px' }}>
-            {canDownload && (
-              <div style={{ backgroundColor: '#c6f6d5', padding: '12px', borderRadius: '8px', color: '#22543d', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>✅</span> You own this item
-              </div>
-            )}
-            {isPending && (
-              <div style={{ backgroundColor: '#feebc8', padding: '12px', borderRadius: '8px', color: '#7b341e', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>⏳</span> Payment pending verification
-              </div>
-            )}
-            {isRejected && (
-              <div style={{ backgroundColor: '#fed7d7', padding: '12px', borderRadius: '8px', color: '#c53030', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>❌</span> Payment was rejected
-              </div>
-            )}
-            {!canDownload && !isPending && !isRejected && (
-              <div style={{ backgroundColor: '#f7fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', color: '#4a5568', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>🔒</span> You need to purchase this item to download it
-              </div>
-            )}
+            {canDownload && <div style={{ backgroundColor: '#c6f6d5', padding: '12px', borderRadius: '8px', color: '#22543d' }}>✅ You own this item</div>}
+            {isPending && <div style={{ backgroundColor: '#feebc8', padding: '12px', borderRadius: '8px', color: '#7b341e' }}>⏳ Payment pending verification</div>}
+            {isRejected && <div style={{ backgroundColor: '#fed7d7', padding: '12px', borderRadius: '8px', color: '#c53030' }}>❌ Payment was rejected</div>}
+            {!canDownload && !isPending && !isRejected && <div style={{ backgroundColor: '#f7fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>🔒 You need to purchase this item to download it</div>}
           </div>
         )}
 
-        {/* Authentication Status */}
         <div style={{ marginBottom: '20px' }}>
           {isAuthenticated ? (
             <div style={{ backgroundColor: '#f0f9ff', padding: '12px', borderRadius: '8px', color: '#0369a1', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -275,52 +171,13 @@ const ItemDetailPage = ({ type }) => {
           )}
         </div>
 
-        {/* Action buttons */}
         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '20px' }}>
           {canDownload ? (
-            <button 
-              onClick={handleDownload} 
-              disabled={downloading} 
-              style={{ 
-                flex: '1', 
-                padding: '14px 28px', 
-                backgroundColor: '#48bb78', 
-                color: 'white', 
-                border: 'none', 
-                borderRadius: '8px', 
-                fontWeight: '600', 
-                cursor: downloading ? 'not-allowed' : 'pointer', 
-                minHeight: '48px',
-                opacity: downloading ? 0.7 : 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px'
-              }}
-            >
-              {downloading ? '⏳ Downloading...' : '⬇️ Download Now'}
+            <button onClick={handleDownload} disabled={downloading} style={{ flex: '1', padding: '14px 28px', backgroundColor: '#48bb78', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: downloading ? 'not-allowed' : 'pointer', minHeight: '48px', opacity: downloading ? 0.7 : 1 }}>
+              {downloading ? '⏳ Starting download...' : '⬇️ Download Now'}
             </button>
           ) : (
-            <button 
-              onClick={handleBuyNow} 
-              disabled={checkingStatus || isPending} 
-              style={{ 
-                flex: '1', 
-                padding: '14px 28px', 
-                backgroundColor: '#667eea', 
-                color: 'white', 
-                border: 'none', 
-                borderRadius: '8px', 
-                fontWeight: '600', 
-                cursor: (checkingStatus || isPending) ? 'not-allowed' : 'pointer', 
-                minHeight: '48px',
-                opacity: (checkingStatus || isPending) ? 0.7 : 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px'
-              }}
-            >
+            <button onClick={handleBuyNow} disabled={checkingStatus || isPending} style={{ flex: '1', padding: '14px 28px', backgroundColor: '#667eea', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: (checkingStatus || isPending) ? 'not-allowed' : 'pointer', minHeight: '48px', opacity: (checkingStatus || isPending) ? 0.7 : 1 }}>
               {checkingStatus ? '⏳ Checking...' : isPending ? '⏳ Pending Verification' : `💰 Buy Now ${!item.isFree ? `- ${formatKES(item.price)}` : ''}`}
             </button>
           )}
@@ -328,39 +185,12 @@ const ItemDetailPage = ({ type }) => {
         </div>
 
         {!item.isFree && !canDownload && !isPending && !isRejected && (
-          <button 
-            onClick={checkPurchaseStatus} 
-            style={{ 
-              padding: '10px 20px', 
-              backgroundColor: '#4299e1', 
-              color: 'white', 
-              border: 'none', 
-              borderRadius: '8px', 
-              cursor: 'pointer', 
-              width: '100%',
-              fontWeight: '500'
-            }}
-          >
-            🔄 Check Purchase Status
-          </button>
-        )}
-
-        {error && (
-          <div style={{ backgroundColor: '#fed7d7', padding: '12px', borderRadius: '8px', marginTop: '16px', color: '#c53030', fontSize: '14px', textAlign: 'center' }}>
-            ⚠️ {error}
-          </div>
+          <button onClick={checkPurchaseStatus} style={{ padding: '10px 20px', backgroundColor: '#4299e1', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', width: '100%', fontWeight: '500' }}>🔄 Check Purchase Status</button>
         )}
       </div>
 
       {showPaymentModal && (
-        <PaymentModal
-          item={{ ...item, type }}
-          onClose={() => setShowPaymentModal(false)}
-          onSuccess={() => {
-            setShowPaymentModal(false);
-            setRefreshCount(prev => prev + 1);
-          }}
-        />
+        <PaymentModal item={{ ...item, type }} onClose={() => setShowPaymentModal(false)} onSuccess={() => { setShowPaymentModal(false); setRefreshCount(prev => prev + 1); }} />
       )}
     </div>
   );
