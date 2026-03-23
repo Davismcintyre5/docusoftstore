@@ -36,6 +36,18 @@ const ProfilePage = () => {
         console.log('✅ Orders received:', ordersRes.data?.length || 0);
         console.log('✅ Pending transactions received:', pendingRes.data?.length || 0);
         
+        // Log pending transaction details for debugging
+        if (pendingRes.data?.length > 0) {
+          pendingRes.data.forEach(tx => {
+            console.log(`   Transaction ${tx._id}:`, {
+              hasScreenshot: !!tx.screenshotUrl,
+              hasConfirmation: !!tx.metadata?.paymentConfirmation,
+              confirmationMessage: tx.metadata?.paymentConfirmation,
+              screenshotUrl: tx.screenshotUrl
+            });
+          });
+        }
+        
         setOrders(ordersRes.data || []);
         setPendingTransactions(pendingRes.data || []);
         
@@ -156,6 +168,7 @@ const ProfilePage = () => {
                         <div style={styles.itemMeta}>
                           <span>{item.itemType}</span>
                           <span>{formatKES(item.price)}</span>
+                          <span>⬇️ Downloads: {item.downloadCount || 0}</span>
                         </div>
                       </div>
                       <Link to={`/${item.itemType}/${item.itemId}`} style={styles.viewBtn}>View</Link>
@@ -163,9 +176,7 @@ const ProfilePage = () => {
                   ))}
                   <div style={styles.orderFooter}>
                     <strong>Total: {formatKES(order.totalAmount)}</strong>
-                    {order.status === 'completed' && (
-                      <span>⬇️ {order.items.reduce((sum, i) => sum + (i.downloadCount || 0), 0)} downloads</span>
-                    )}
+                    <span>📅 {formatDate(order.completedAt || order.createdAt)}</span>
                   </div>
                 </div>
               ))}
@@ -185,26 +196,57 @@ const ProfilePage = () => {
             </div>
           ) : (
             <div style={styles.pendingGrid}>
-              {pendingTransactions.map(tx => (
-                <div key={tx._id} style={styles.pendingCard}>
-                  <div style={styles.pendingHeader}>
-                    <span>{tx.itemTitle}</span>
-                    <span style={styles.pendingAmount}>{formatKES(tx.amount)}</span>
+              {pendingTransactions.map(tx => {
+                const hasScreenshot = tx.screenshotUrl && tx.screenshotUrl !== null;
+                const hasMessage = tx.metadata?.paymentConfirmation && tx.metadata.paymentConfirmation !== null;
+                
+                return (
+                  <div key={tx._id} style={styles.pendingCard}>
+                    <div style={styles.pendingHeader}>
+                      <span>{tx.itemTitle}</span>
+                      <span style={styles.pendingAmount}>{formatKES(tx.amount)}</span>
+                    </div>
+                    <div style={styles.pendingDetails}>
+                      <p>📅 {formatDate(tx.createdAt)}</p>
+                      <p>💰 {tx.paymentMethod === 'manual' ? 'Manual Payment' : 'STK Push'}</p>
+                      
+                      {hasScreenshot && (
+                        <div style={{ marginTop: '8px' }}>
+                          <a 
+                            href={tx.screenshotUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            style={styles.viewScreenshotBtn}
+                          >
+                            📸 View Screenshot
+                          </a>
+                        </div>
+                      )}
+                      
+                      {hasMessage && (
+                        <div style={styles.confirmationMessageBox}>
+                          <strong>📝 Confirmation Message:</strong>
+                          <p style={styles.confirmationText}>
+                            {tx.metadata.paymentConfirmation}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {!hasScreenshot && !hasMessage && (
+                        <div style={styles.noConfirmationBox}>
+                          <span>⏳ No confirmation provided yet</span>
+                          <p style={{ fontSize: '12px', marginTop: '4px' }}>
+                            Please upload a screenshot or paste your M-Pesa confirmation message.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    <div style={styles.pendingFooter}>
+                      ⏳ Awaiting admin verification
+                    </div>
                   </div>
-                  <div style={styles.pendingDetails}>
-                    <p>📅 {formatDate(tx.createdAt)}</p>
-                    <p>💰 {tx.paymentMethod === 'manual' ? 'Manual Payment' : 'STK Push'}</p>
-                    {tx.screenshotUrl && (
-                      <a href={tx.screenshotUrl} target="_blank" rel="noopener noreferrer" style={styles.viewScreenshotBtn}>
-                        📸 View Screenshot
-                      </a>
-                    )}
-                  </div>
-                  <div style={styles.pendingFooter}>
-                    ⏳ Awaiting admin verification
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -271,12 +313,15 @@ const styles = {
   itemMeta: { display: 'flex', gap: '12px', fontSize: '12px', color: '#718096' },
   viewBtn: { padding: '6px 12px', backgroundColor: '#667eea', color: 'white', textDecoration: 'none', borderRadius: '6px', fontSize: '12px' },
   orderFooter: { backgroundColor: '#f8fafc', padding: '16px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap' },
-  pendingGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' },
+  pendingGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '16px' },
   pendingCard: { backgroundColor: '#fff3e0', borderRadius: '12px', padding: '16px', border: '1px solid #ffd8b0' },
   pendingHeader: { display: 'flex', justifyContent: 'space-between', marginBottom: '12px', fontWeight: '600' },
   pendingAmount: { color: '#ed8936' },
   pendingDetails: { marginBottom: '12px', fontSize: '13px', color: '#718096' },
   viewScreenshotBtn: { display: 'inline-block', marginTop: '8px', padding: '4px 8px', backgroundColor: '#4299e1', color: 'white', textDecoration: 'none', borderRadius: '4px', fontSize: '12px' },
+  confirmationMessageBox: { marginTop: '12px', padding: '10px', backgroundColor: '#f7fafc', borderRadius: '8px', border: '1px solid #e2e8f0' },
+  confirmationText: { marginTop: '4px', fontSize: '12px', color: '#2d3748', wordBreak: 'break-all', whiteSpace: 'pre-wrap' },
+  noConfirmationBox: { marginTop: '12px', padding: '10px', backgroundColor: '#fff7ed', borderRadius: '8px', border: '1px solid #ffd8b0', textAlign: 'center' },
   pendingFooter: { marginTop: '12px', paddingTop: '12px', borderTop: '1px dashed #ffd8b0', color: '#ed8936', fontSize: '12px', textAlign: 'center' },
   settingsCard: { maxWidth: '600px', margin: '0 auto' },
   infoRow: { padding: '12px 0', borderBottom: '1px solid #e2e8f0' },
