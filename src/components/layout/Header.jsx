@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import { useSettings } from '../../context/SettingsContext';
+import { useAuth } from '@context/AuthContext';
+import { useSettings } from '@context/SettingsContext';
 
 const Header = () => {
   const { user, logout } = useAuth();
@@ -23,7 +23,8 @@ const Header = () => {
     <header className="header">
       <div className="header-container">
         <Link to="/" className="logo">
-          {settings?.businessName || 'DocuSoft'}
+          <span className="logo-icon">📚</span>
+          <span className="logo-text">{settings?.businessName || 'DocuSoft'}</span>
         </Link>
         
         <div className="search-bar">

@@ -36,7 +36,6 @@ const ProfilePage = () => {
         console.log('✅ Orders received:', ordersRes.data?.length || 0);
         console.log('✅ Pending transactions received:', pendingRes.data?.length || 0);
         
-        // Log pending transaction details for debugging
         if (pendingRes.data?.length > 0) {
           pendingRes.data.forEach(tx => {
             console.log(`   Transaction ${tx._id}:`, {
@@ -67,210 +66,278 @@ const ProfilePage = () => {
   if (loading) return <LoadingSpinner text="Loading profile..." />;
 
   return (
-    <div style={styles.container}>
-      {/* Profile Header */}
-      <div style={styles.header}>
-        <div style={styles.coverPhoto}></div>
-        <div style={styles.profileInfo}>
-          <div style={styles.avatarContainer}>
-            <div style={styles.avatar}>
-              {user?.name?.charAt(0).toUpperCase()}
-            </div>
-          </div>
-          <div style={styles.userDetails}>
-            <h1 style={styles.userName}>{user?.name}</h1>
-            <div style={styles.userMeta}>
-              <span style={styles.userEmail}>📧 {user?.email}</span>
-              <span style={styles.userPhone}>📱 {user?.phone}</span>
-            </div>
-            <div style={styles.userStats}>
-              <div style={styles.statItem}>
-                <span style={styles.statValue}>{orders.length}</span>
-                <span style={styles.statLabel}>Purchases</span>
+    <>
+      <style>{`
+        /* Profile Page Responsive Overrides */
+        @media (max-width: 768px) {
+          .profile-container {
+            padding: 12px !important;
+          }
+          .profile-tabs {
+            flex-wrap: wrap !important;
+            gap: 8px !important;
+          }
+          .profile-tab {
+            min-width: 120px !important;
+            font-size: 13px !important;
+            padding: 8px !important;
+          }
+          .profile-avatar {
+            width: 80px !important;
+            height: 80px !important;
+            font-size: 32px !important;
+          }
+          .profile-user-name {
+            font-size: 22px !important;
+          }
+          .profile-user-meta {
+            gap: 12px !important;
+          }
+          .profile-stats {
+            gap: 20px !important;
+          }
+          .profile-stat-value {
+            font-size: 18px !important;
+          }
+          .orders-grid,
+          .pending-grid {
+            gap: 12px !important;
+          }
+          .order-card,
+          .pending-card {
+            padding: 12px !important;
+          }
+          .order-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 8px !important;
+          }
+          .order-item {
+            flex-wrap: wrap !important;
+          }
+          .item-meta {
+            flex-wrap: wrap !important;
+            gap: 8px !important;
+          }
+          .pending-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .pending-card {
+            padding: 12px !important;
+          }
+          .settings-card {
+            padding: 16px !important;
+          }
+        }
+      `}</style>
+      <div className="profile-container" style={styles.container}>
+        {/* Profile Header */}
+        <div style={styles.header}>
+          <div style={styles.coverPhoto}></div>
+          <div style={styles.profileInfo}>
+            <div style={styles.avatarContainer}>
+              <div className="profile-avatar" style={styles.avatar}>
+                {user?.name?.charAt(0).toUpperCase()}
               </div>
-              <div style={styles.statItem}>
-                <span style={styles.statValue}>{pendingTransactions.length}</span>
-                <span style={styles.statLabel}>Pending</span>
-              </div>
-              <div style={styles.statItem}>
-                <span style={styles.statValue}>
-                  {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
-                </span>
-                <span style={styles.statLabel}>Member Since</span>
-              </div>
             </div>
-          </div>
-        </div>
-      </div>
-
-      {error && (
-        <div style={styles.errorAlert}>
-          ⚠️ {error}
-          <button onClick={() => window.location.reload()} style={styles.retryBtn}>Retry</button>
-        </div>
-      )}
-
-      {/* Tabs */}
-      <div style={styles.tabs}>
-        <button
-          onClick={() => setActiveTab('purchases')}
-          style={{ ...styles.tab, ...(activeTab === 'purchases' ? styles.activeTab : {}) }}
-        >
-          📦 My Purchases {orders.length > 0 && <span style={styles.badge}>{orders.length}</span>}
-        </button>
-        <button
-          onClick={() => setActiveTab('pending')}
-          style={{ ...styles.tab, ...(activeTab === 'pending' ? styles.activeTab : {}) }}
-        >
-          ⏳ Pending Verifications {pendingTransactions.length > 0 && <span style={styles.badge}>{pendingTransactions.length}</span>}
-        </button>
-        <button
-          onClick={() => setActiveTab('settings')}
-          style={{ ...styles.tab, ...(activeTab === 'settings' ? styles.activeTab : {}) }}
-        >
-          ⚙️ Account Settings
-        </button>
-      </div>
-
-      {/* Purchases Tab */}
-      {activeTab === 'purchases' && (
-        <div style={styles.content}>
-          {orders.length === 0 ? (
-            <div style={styles.emptyState}>
-              <div style={styles.emptyIcon}>🛒</div>
-              <h3>No purchases yet</h3>
-              <p>Start exploring our store and make your first purchase!</p>
-              <Link to="/documents" style={styles.browseBtn}>Browse Documents</Link>
-              <Link to="/software" style={styles.browseBtn}>Browse Software</Link>
-            </div>
-          ) : (
-            <div style={styles.ordersGrid}>
-              {orders.map(order => (
-                <div key={order._id} style={styles.orderCard}>
-                  <div style={styles.orderHeader}>
-                    <div>
-                      <span style={styles.orderId}>#{order._id.slice(-8)}</span>
-                      <span style={styles.orderDate}>{formatDate(order.createdAt)}</span>
-                    </div>
-                    <span style={{
-                      ...styles.orderStatus,
-                      backgroundColor: order.status === 'completed' ? '#c6f6d5' : '#feebc8',
-                      color: order.status === 'completed' ? '#22543d' : '#7b341e'
-                    }}>
-                      {order.status === 'completed' ? '✅ Completed' : '⏳ Pending'}
-                    </span>
-                  </div>
-                  {order.items.map((item, idx) => (
-                    <div key={idx} style={styles.orderItem}>
-                      <div style={styles.itemIcon}>{item.itemType === 'document' ? '📄' : '💻'}</div>
-                      <div style={styles.itemDetails}>
-                        <div style={styles.itemTitle}>{item.title}</div>
-                        <div style={styles.itemMeta}>
-                          <span>{item.itemType}</span>
-                          <span>{formatKES(item.price)}</span>
-                          <span>⬇️ Downloads: {item.downloadCount || 0}</span>
-                        </div>
-                      </div>
-                      <Link to={`/${item.itemType}/${item.itemId}`} style={styles.viewBtn}>View</Link>
-                    </div>
-                  ))}
-                  <div style={styles.orderFooter}>
-                    <strong>Total: {formatKES(order.totalAmount)}</strong>
-                    <span>📅 {formatDate(order.completedAt || order.createdAt)}</span>
-                  </div>
+            <div style={styles.userDetails}>
+              <h1 className="profile-user-name" style={styles.userName}>{user?.name}</h1>
+              <div className="profile-user-meta" style={styles.userMeta}>
+                <span style={styles.userEmail}>📧 {user?.email}</span>
+                <span style={styles.userPhone}>📱 {user?.phone}</span>
+              </div>
+              <div className="profile-stats" style={styles.userStats}>
+                <div style={styles.statItem}>
+                  <span className="profile-stat-value" style={styles.statValue}>{orders.length}</span>
+                  <span style={styles.statLabel}>Purchases</span>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Pending Tab */}
-      {activeTab === 'pending' && (
-        <div style={styles.content}>
-          {pendingTransactions.length === 0 ? (
-            <div style={styles.emptyState}>
-              <div style={styles.emptyIcon}>✅</div>
-              <h3>No pending verifications</h3>
-              <p>All your payments are up to date!</p>
-            </div>
-          ) : (
-            <div style={styles.pendingGrid}>
-              {pendingTransactions.map(tx => {
-                const hasScreenshot = tx.screenshotUrl && tx.screenshotUrl !== null;
-                const hasMessage = tx.metadata?.paymentConfirmation && tx.metadata.paymentConfirmation !== null;
-                
-                return (
-                  <div key={tx._id} style={styles.pendingCard}>
-                    <div style={styles.pendingHeader}>
-                      <span>{tx.itemTitle}</span>
-                      <span style={styles.pendingAmount}>{formatKES(tx.amount)}</span>
-                    </div>
-                    <div style={styles.pendingDetails}>
-                      <p>📅 {formatDate(tx.createdAt)}</p>
-                      <p>💰 {tx.paymentMethod === 'manual' ? 'Manual Payment' : 'STK Push'}</p>
-                      
-                      {hasScreenshot && (
-                        <div style={{ marginTop: '8px' }}>
-                          <a 
-                            href={tx.screenshotUrl} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            style={styles.viewScreenshotBtn}
-                          >
-                            📸 View Screenshot
-                          </a>
-                        </div>
-                      )}
-                      
-                      {hasMessage && (
-                        <div style={styles.confirmationMessageBox}>
-                          <strong>📝 Confirmation Message:</strong>
-                          <p style={styles.confirmationText}>
-                            {tx.metadata.paymentConfirmation}
-                          </p>
-                        </div>
-                      )}
-                      
-                      {!hasScreenshot && !hasMessage && (
-                        <div style={styles.noConfirmationBox}>
-                          <span>⏳ No confirmation provided yet</span>
-                          <p style={{ fontSize: '12px', marginTop: '4px' }}>
-                            Please upload a screenshot or paste your M-Pesa confirmation message.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                    <div style={styles.pendingFooter}>
-                      ⏳ Awaiting admin verification
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Settings Tab */}
-      {activeTab === 'settings' && (
-        <div style={styles.content}>
-          <div style={styles.settingsCard}>
-            <h3>Account Settings</h3>
-            <div style={styles.infoRow}><strong>Name:</strong> {user?.name}</div>
-            <div style={styles.infoRow}><strong>Email:</strong> {user?.email}</div>
-            <div style={styles.infoRow}><strong>Phone:</strong> {user?.phone}</div>
-            <div style={styles.supportSection}>
-              <h4>Need Help?</h4>
-              <p>Contact: {settings?.businessPhoneNumber}</p>
-              <a href={`https://wa.me/254${(settings?.whatsappNumber || '0768784909').slice(1)}`} target="_blank" rel="noopener noreferrer" style={styles.whatsappBtn}>
-                💬 WhatsApp Support
-              </a>
+                <div style={styles.statItem}>
+                  <span className="profile-stat-value" style={styles.statValue}>{pendingTransactions.length}</span>
+                  <span style={styles.statLabel}>Pending</span>
+                </div>
+                <div style={styles.statItem}>
+                  <span className="profile-stat-value" style={styles.statValue}>
+                    {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+                  </span>
+                  <span style={styles.statLabel}>Member Since</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      )}
-    </div>
+
+        {error && (
+          <div style={styles.errorAlert}>
+            ⚠️ {error}
+            <button onClick={() => window.location.reload()} style={styles.retryBtn}>Retry</button>
+          </div>
+        )}
+
+        {/* Tabs */}
+        <div className="profile-tabs" style={styles.tabs}>
+          <button
+            onClick={() => setActiveTab('purchases')}
+            className="profile-tab"
+            style={{ ...styles.tab, ...(activeTab === 'purchases' ? styles.activeTab : {}) }}
+          >
+            📦 My Purchases {orders.length > 0 && <span style={styles.badge}>{orders.length}</span>}
+          </button>
+          <button
+            onClick={() => setActiveTab('pending')}
+            className="profile-tab"
+            style={{ ...styles.tab, ...(activeTab === 'pending' ? styles.activeTab : {}) }}
+          >
+            ⏳ Pending Verifications {pendingTransactions.length > 0 && <span style={styles.badge}>{pendingTransactions.length}</span>}
+          </button>
+          <button
+            onClick={() => setActiveTab('settings')}
+            className="profile-tab"
+            style={{ ...styles.tab, ...(activeTab === 'settings' ? styles.activeTab : {}) }}
+          >
+            ⚙️ Account Settings
+          </button>
+        </div>
+
+        {/* Purchases Tab */}
+        {activeTab === 'purchases' && (
+          <div style={styles.content}>
+            {orders.length === 0 ? (
+              <div style={styles.emptyState}>
+                <div style={styles.emptyIcon}>🛒</div>
+                <h3>No purchases yet</h3>
+                <p>Start exploring our store and make your first purchase!</p>
+                <Link to="/documents" style={styles.browseBtn}>Browse Documents</Link>
+                <Link to="/software" style={styles.browseBtn}>Browse Software</Link>
+              </div>
+            ) : (
+              <div className="orders-grid" style={styles.ordersGrid}>
+                {orders.map(order => (
+                  <div key={order._id} className="order-card" style={styles.orderCard}>
+                    <div className="order-header" style={styles.orderHeader}>
+                      <div>
+                        <span style={styles.orderId}>#{order._id.slice(-8)}</span>
+                        <span style={styles.orderDate}>{formatDate(order.createdAt)}</span>
+                      </div>
+                      <span style={{
+                        ...styles.orderStatus,
+                        backgroundColor: order.status === 'completed' ? '#c6f6d5' : '#feebc8',
+                        color: order.status === 'completed' ? '#22543d' : '#7b341e'
+                      }}>
+                        {order.status === 'completed' ? '✅ Completed' : '⏳ Pending'}
+                      </span>
+                    </div>
+                    {order.items.map((item, idx) => (
+                      <div key={idx} className="order-item" style={styles.orderItem}>
+                        <div style={styles.itemIcon}>{item.itemType === 'document' ? '📄' : '💻'}</div>
+                        <div style={styles.itemDetails}>
+                          <div style={styles.itemTitle}>{item.title}</div>
+                          <div className="item-meta" style={styles.itemMeta}>
+                            <span>{item.itemType}</span>
+                            <span>{formatKES(item.price)}</span>
+                            <span>⬇️ Downloads: {item.downloadCount || 0}</span>
+                          </div>
+                        </div>
+                        <Link to={`/${item.itemType}/${item.itemId}`} style={styles.viewBtn}>View</Link>
+                      </div>
+                    ))}
+                    <div style={styles.orderFooter}>
+                      <strong>Total: {formatKES(order.totalAmount)}</strong>
+                      <span>📅 {formatDate(order.completedAt || order.createdAt)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Pending Tab */}
+        {activeTab === 'pending' && (
+          <div style={styles.content}>
+            {pendingTransactions.length === 0 ? (
+              <div style={styles.emptyState}>
+                <div style={styles.emptyIcon}>✅</div>
+                <h3>No pending verifications</h3>
+                <p>All your payments are up to date!</p>
+              </div>
+            ) : (
+              <div className="pending-grid" style={styles.pendingGrid}>
+                {pendingTransactions.map(tx => {
+                  const hasScreenshot = tx.screenshotUrl && tx.screenshotUrl !== null;
+                  const hasMessage = tx.metadata?.paymentConfirmation && tx.metadata.paymentConfirmation !== null;
+                  
+                  return (
+                    <div key={tx._id} className="pending-card" style={styles.pendingCard}>
+                      <div style={styles.pendingHeader}>
+                        <span>{tx.itemTitle}</span>
+                        <span style={styles.pendingAmount}>{formatKES(tx.amount)}</span>
+                      </div>
+                      <div style={styles.pendingDetails}>
+                        <p>📅 {formatDate(tx.createdAt)}</p>
+                        <p>💰 {tx.paymentMethod === 'manual' ? 'Manual Payment' : 'STK Push'}</p>
+                        
+                        {hasScreenshot && (
+                          <div style={{ marginTop: '8px' }}>
+                            <a 
+                              href={tx.screenshotUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              style={styles.viewScreenshotBtn}
+                            >
+                              📸 View Screenshot
+                            </a>
+                          </div>
+                        )}
+                        
+                        {hasMessage && (
+                          <div style={styles.confirmationMessageBox}>
+                            <strong>📝 Confirmation Message:</strong>
+                            <p style={styles.confirmationText}>
+                              {tx.metadata.paymentConfirmation}
+                            </p>
+                          </div>
+                        )}
+                        
+                        {!hasScreenshot && !hasMessage && (
+                          <div style={styles.noConfirmationBox}>
+                            <span>⏳ No confirmation provided yet</span>
+                            <p style={{ fontSize: '12px', marginTop: '4px' }}>
+                              Please upload a screenshot or paste your M-Pesa confirmation message.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      <div style={styles.pendingFooter}>
+                        ⏳ Awaiting admin verification
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Settings Tab */}
+        {activeTab === 'settings' && (
+          <div style={styles.content}>
+            <div className="settings-card" style={styles.settingsCard}>
+              <h3>Account Settings</h3>
+              <div style={styles.infoRow}><strong>Name:</strong> {user?.name}</div>
+              <div style={styles.infoRow}><strong>Email:</strong> {user?.email}</div>
+              <div style={styles.infoRow}><strong>Phone:</strong> {user?.phone}</div>
+              <div style={styles.supportSection}>
+                <h4>Need Help?</h4>
+                <p>Contact: {settings?.businessPhoneNumber}</p>
+                <a href={`https://wa.me/254${(settings?.whatsappNumber || '0768784909').slice(1)}`} target="_blank" rel="noopener noreferrer" style={styles.whatsappBtn}>
+                  💬 WhatsApp Support
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </>
   );
 };
 

@@ -1,5 +1,6 @@
+// client/src/App.jsx
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { SettingsProvider } from './context/SettingsContext';
 import { useAuth } from './context/AuthContext';
@@ -21,10 +22,13 @@ import RegisterPage from './pages/RegisterPage';
 import ProfilePage from './pages/ProfilePage';
 import HelpPage from './pages/HelpPage';
 import SearchPage from './pages/SearchPage';
-import TermsPage from './pages/TermsPage';      // NEW
+import TermsPage from './pages/TermsPage';
 
 function AppContent() {
   const { loading } = useAuth();
+  const location = useLocation();
+  // Check if we are on login or register page
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
 
   if (loading) {
     return (
@@ -35,6 +39,21 @@ function AppContent() {
     );
   }
 
+  // For auth pages, render without Header, Sidebar, Footer
+  if (isAuthPage) {
+    return (
+      <div className="app">
+        <main className="auth-container">
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+          </Routes>
+        </main>
+      </div>
+    );
+  }
+
+  // Normal layout with header, sidebar, footer
   return (
     <div className="app">
       <Header />
@@ -49,13 +68,11 @@ function AppContent() {
             <Route path="/document/:id" element={<ItemDetailPage type="document" />} />
             <Route path="/software/:id" element={<ItemDetailPage type="software" />} />
             <Route path="/checkout/:id" element={<CheckoutPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/help" element={<HelpPage />} />
             <Route path="/search" element={<SearchPage />} />
-            <Route path="/terms" element={<TermsPage type="terms" />} />      {/* NEW */}
-            <Route path="/privacy" element={<TermsPage type="privacy" />} />   {/* NEW */}
+            <Route path="/terms" element={<TermsPage type="terms" />} />
+            <Route path="/privacy" element={<TermsPage type="privacy" />} />
           </Routes>
         </main>
       </div>
