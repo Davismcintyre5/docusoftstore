@@ -2,85 +2,71 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
-import PaymentModal from '../components/payments/PaymentModal';
-import LoadingSpinner from '../components/common/LoadingSpinner';
+import PaymentModal from '../components/payment/PaymentModal';
+import LoadingSpinner from '../components/ui/LoadingSpinner';
 import { formatKES } from '../utils/formatters';
+import { ArrowLeft } from 'lucide-react';
 
 const CheckoutPage = () => {
   const { id } = useParams();
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuth();
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
+  const [type, setType] = useState(null);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login', { state: { from: `/checkout/${id}` } });
+    if (!user) {
+      navigate('/login');
       return;
     }
-
-    const fetchItem = async () => {
-      try {
-        // Try both document and software
-        let data;
-        try {
-          const res = await api.get(`/documents/${id}`);
-          data = { ...res.data, type: 'document' };
-        } catch {
-          const res = await api.get(`/software/${id}`);
-          data = { ...res.data, type: 'software' };
-        }
-        setItem(data);
-      } catch (error) {
-        console.error('Failed to fetch item:', error);
-        navigate('/');
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchItem();
-  }, [id, isAuthenticated, navigate]);
+  }, [id, user]);
+
+  const fetchItem = async () => {
+    try {
+      const [docRes, softRes] = await Promise.all([
+        api.get(`/documents/${id}`).catch(() => null),
+        api.get(`/software/${id}`).catch(() => null)
+      ]);
+      if (docRes?.data) {
+        setItem(docRes.data);
+        setType('document');
+      } else if (softRes?.data) {
+        setItem(softRes.data);
+        setType('software');
+      } else {
+        navigate('/');
+      }
+    } catch (error) {
+      navigate('/');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading) return <LoadingSpinner />;
-  if (!item) return <div>Item not found</div>;
+  if (!item) return null;
 
   return (
-    <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-      <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '30px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-        <h2>Checkout</h2>
-        <div style={{ marginTop: '24px' }}>
-          <h3>{item.title}</h3>
-          <p>{item.description}</p>
-          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#667eea', marginTop: '16px' }}>
-            {formatKES(item.price)}
-          </div>
+    <div className="max-w-2xl mx-auto animate-fade-in">
+      <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1 text-primary-600 mb-4"><ArrowLeft size={16} /> Back</button>
+      
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+        <h1 className="text-2xl font-bold mb-4">Checkout</h1>
+        <div className="border-b pb-4 mb-4">
+          <p className="font-semibold">{item.title}</p>
+          <p className="text-sm text-gray-500 capitalize">{type}</p>
         </div>
-        <button
-          onClick={() => setShowPaymentModal(true)}
-          style={{
-            marginTop: '24px',
-            padding: '14px 28px',
-            backgroundColor: '#667eea',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            width: '100%'
-          }}
-        >
-          Proceed to Payment
-        </button>
+        <div className="flex justify-between mb-6">
+          <span>Total</span>
+          <span className="text-xl font-bold text-primary-600">{formatKES(item.price)}</span>
+        </div>
+        <button onClick={() => setShowPayment(true)} className="btn-primary w-full">Proceed to Payment</button>
       </div>
 
-      {showPaymentModal && (
-        <PaymentModal
-          item={item}
-          onClose={() => setShowPaymentModal(false)}
-          onSuccess={() => navigate('/profile')}
-        />
-      )}
+      {showPayment && <PaymentModal item={{ ...item, type }} onClose={() => setShowPayment(false)} onSuccess={() => navigate('/profile')} />}
     </div>
   );
 };

@@ -3,9 +3,9 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
-import PaymentModal from '../components/payments/PaymentModal';
+import PaymentModal from '../components/payment/PaymentModal';
 import WhatsAppButton from '../components/whatsapp/WhatsAppButton';
-import LoadingSpinner from '../components/common/LoadingSpinner';
+import LoadingSpinner from '../components/ui/LoadingSpinner';
 import { formatKES } from '../utils/formatters';
 
 const ItemDetailPage = ({ type }) => {
@@ -42,9 +42,11 @@ const ItemDetailPage = ({ type }) => {
     if (id) fetchItem();
   }, [id, type]);
 
-  // Check purchase status
+  // Check purchase status for paid items (only when user is logged in)
   useEffect(() => {
-    if (user && item) checkPurchaseStatus();
+    if (user && item && !item.isFree) {
+      checkPurchaseStatus();
+    }
   }, [user, item, refreshCount]);
 
   const checkPurchaseStatus = async () => {
@@ -62,64 +64,47 @@ const ItemDetailPage = ({ type }) => {
 
   const handleBuyNow = () => {
     if (!user) {
-      sessionStorage.setItem(
-        'pendingPurchase',
-        JSON.stringify({
-          itemId: id,
-          itemType: type,
-          price: item.price,
-          title: item.title,
-        })
-      );
-      navigate('/login', { state: { from: `/checkout/${id}` } });
+      // Redirect to login with return URL
+      navigate('/login', { state: { from: `/${type}/${id}` } });
     } else {
       setShowPaymentModal(true);
     }
   };
 
-  // ----- DOWNLOAD FUNCTION (PRODUCTION FIX) -----
-  const handleDownload = () => {
-    if (!item.isFree && !isAuthenticated) {
-      alert('Please login to download paid items');
-      navigate('/login', { state: { from: `/${type}/${id}` } });
-      return;
-    }
-
+  // Download function - FREE items work without login
+  const handleDownload = async () => {
     setDownloading(true);
     setError('');
 
     try {
       const apiPath = getApiPath();
-      // Use the API base URL from environment (production) or relative path (dev via proxy)
-      const baseUrl = import.meta.env.VITE_API_URL || '/api';
-      let url = `${baseUrl}/${apiPath}/${id}/download`;
+      let url = `${import.meta.env.VITE_API_URL || '/api'}/${apiPath}/${id}/download`;
 
       // For paid items, add token as query parameter
       if (!item.isFree) {
+        if (!isAuthenticated) {
+          setError('Please login to download paid items');
+          setDownloading(false);
+          navigate('/login', { state: { from: `/${type}/${id}` } });
+          return;
+        }
         const token = localStorage.getItem('token');
         if (token) {
           url += `?token=${encodeURIComponent(token)}`;
-          console.log('🔑 Added token to download URL');
         } else {
           throw new Error('No authentication token found');
         }
       }
 
-      console.log('⬇️ Full download URL:', url);
-      console.log('📦 Item:', item.title, 'Free:', item.isFree, 'GitHub URL:', item.fileUrl);
-
-      // Direct navigation – browser will follow redirects
-      window.location.href = url;
-
-      // Reset downloading state after a short delay
-      setTimeout(() => setDownloading(false), 3000);
+      // Open download in new tab/window
+      window.open(url, '_blank');
     } catch (err) {
       console.error('Download error:', err);
       setError('Download failed. Please try again.');
+    } finally {
       setDownloading(false);
     }
   };
-  // ----- END DOWNLOAD FUNCTION -----
 
   const formatFileSize = (bytes) => {
     if (!bytes) return '';
@@ -127,334 +112,124 @@ const ItemDetailPage = ({ type }) => {
     return mb < 1 ? `${(bytes / 1024).toFixed(0)} KB` : `${mb.toFixed(2)} MB`;
   };
 
-  const getFileIcon = () => {
-    const ext = item?.fileInfo?.extension?.toLowerCase();
-    if (ext === '.pdf') return '📄';
-    if (ext === '.doc' || ext === '.docx') return '📝';
-    if (ext === '.zip' || ext === '.rar') return '🗜️';
-    if (ext === '.txt') return '📃';
-    if (type === 'software') return '💻';
-    return '📁';
-  };
-
-  const getFileTypeLabel = () => {
-    const ext = item?.fileInfo?.extension?.toLowerCase();
-    if (ext === '.zip' || ext === '.rar') return 'Archive File';
-    if (type === 'software') return 'Software Installer';
-    return 'Document File';
-  };
-
   if (loading) return <LoadingSpinner />;
-  if (error) return <div className="error-message">{error}</div>;
-  if (!item) return <div>Item not found</div>;
+  if (error) return <div className="text-center py-12 text-red-600">{error}</div>;
+  if (!item) return <div className="text-center py-12">Item not found</div>;
 
-  const canDownload = item.isFree || purchaseStatus?.status === 'completed' || purchaseStatus?.purchased === true;
-  const isPending = purchaseStatus?.status === 'pending';
+  // Determine if user can download
+  const canDownload = item.isFree || purchaseStatus?.purchased === true;
+  const isPending = purchaseStatus?.status === 'pending' || purchaseStatus?.status === 'processing';
   const isRejected = purchaseStatus?.status === 'rejected';
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-      <div
-        style={{
-          backgroundColor: 'white',
-          borderRadius: '16px',
-          padding: '30px',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-        }}
-      >
-        <h1 style={{ fontSize: '32px', fontWeight: '700', marginBottom: '16px' }}>{item.title}</h1>
-        <div
-          style={{
-            display: 'flex',
-            gap: '20px',
-            marginBottom: '20px',
-            fontSize: '14px',
-            flexWrap: 'wrap',
-          }}
-        >
-          <span style={{ backgroundColor: '#e2e8f0', padding: '4px 12px', borderRadius: '20px' }}>
-            {type === 'document' ? '📄 Document' : '💻 Software'}
-          </span>
-          <span>
-            Category:{' '}
-            <Link to={`/category/${item.category?.slug}`}>{item.category?.name}</Link>
-          </span>
-        </div>
-
-        <p style={{ fontSize: '16px', lineHeight: '1.6', marginBottom: '24px' }}>{item.description}</p>
-
-        {/* File Information Block */}
-        {item.fileInfo && (
-          <div
-            style={{
-              backgroundColor: '#f7fafc',
-              padding: '16px',
-              borderRadius: '12px',
-              marginBottom: '24px',
-              border: '1px solid #e2e8f0',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-              <span style={{ fontSize: '28px' }}>{getFileIcon()}</span>
-              <div>
-                <div style={{ fontWeight: '600', color: '#2d3748', fontSize: '16px' }}>
-                  {getFileTypeLabel()}
-                </div>
-                <div style={{ fontSize: '13px', color: '#718096', wordBreak: 'break-all' }}>
-                  {item.fileInfo.originalName}
-                </div>
-              </div>
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                gap: '16px',
-                marginTop: '12px',
-                paddingTop: '12px',
-                borderTop: '1px solid #e2e8f0',
-                fontSize: '12px',
-                color: '#a0aec0',
-              }}
-            >
-              <span>📦 Size: {formatFileSize(item.fileInfo.size)}</span>
-              <span>📁 Type: {item.fileInfo.extension?.toUpperCase() || 'FILE'}</span>
-              <span>⬇️ Downloads: {item.downloadCount || 0}</span>
-            </div>
-          </div>
-        )}
-
-        <div style={{ marginBottom: '24px' }}>
-          {item.isFree ? (
-            <span style={{ fontSize: '28px', fontWeight: '700', color: '#48bb78' }}>FREE</span>
-          ) : (
-            <span style={{ fontSize: '32px', fontWeight: '700', color: '#667eea' }}>
-              {formatKES(item.price)}
-            </span>
-          )}
-        </div>
-
-        {/* Status messages */}
-        {!item.isFree && (
-          <div style={{ marginBottom: '20px' }}>
-            {canDownload && (
-              <div
-                style={{
-                  backgroundColor: '#c6f6d5',
-                  padding: '12px',
-                  borderRadius: '8px',
-                  color: '#22543d',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}
-              >
-                <span>✅</span> You own this item
-              </div>
-            )}
-            {isPending && (
-              <div
-                style={{
-                  backgroundColor: '#feebc8',
-                  padding: '12px',
-                  borderRadius: '8px',
-                  color: '#7b341e',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}
-              >
-                <span>⏳</span> Payment pending verification
-              </div>
-            )}
-            {isRejected && (
-              <div
-                style={{
-                  backgroundColor: '#fed7d7',
-                  padding: '12px',
-                  borderRadius: '8px',
-                  color: '#c53030',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}
-              >
-                <span>❌</span> Payment was rejected
-              </div>
-            )}
-            {!canDownload && !isPending && !isRejected && (
-              <div
-                style={{
-                  backgroundColor: '#f7fafc',
-                  padding: '12px',
-                  borderRadius: '8px',
-                  border: '1px solid #e2e8f0',
-                  color: '#4a5568',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}
-              >
-                <span>🔒</span> You need to purchase this item to download it
-              </div>
+    <div className="max-w-4xl mx-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+        <div className="md:flex">
+          {/* Left - Icon */}
+          <div className="md:w-1/3 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center p-8">
+            {type === 'document' ? (
+              <span className="text-6xl md:text-7xl">📄</span>
+            ) : (
+              <span className="text-6xl md:text-7xl">💻</span>
             )}
           </div>
-        )}
 
-        {/* Authentication Status */}
-        <div style={{ marginBottom: '20px' }}>
-          {isAuthenticated ? (
-            <div
-              style={{
-                backgroundColor: '#f0f9ff',
-                padding: '12px',
-                borderRadius: '8px',
-                color: '#0369a1',
-                fontSize: '14px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                flexWrap: 'wrap',
-              }}
-            >
-              <span>👤</span> Logged in as: <strong>{user?.email}</strong>
-              {canDownload && (
-                <span
-                  style={{
-                    marginLeft: 'auto',
-                    backgroundColor: '#48bb78',
-                    color: 'white',
-                    padding: '2px 8px',
-                    borderRadius: '12px',
-                    fontSize: '11px',
-                  }}
-                >
-                  ✓ Owned
+          {/* Right - Details */}
+          <div className="md:w-2/3 p-6 md:p-8">
+            <h1 className="text-2xl md:text-3xl font-bold mb-2">{item.title}</h1>
+            <div className="flex flex-wrap gap-2 mb-4">
+              <span className="badge badge-info capitalize">{type}</span>
+              {item.isFree ? (
+                <span className="badge badge-success">FREE</span>
+              ) : (
+                <span className="badge bg-primary-100 text-primary-800 dark:bg-primary-900/30 dark:text-primary-400">
+                  {formatKES(item.price)}
                 </span>
               )}
+              <span className="badge bg-gray-100 dark:bg-gray-700">⬇️ {item.downloadCount || 0} downloads</span>
             </div>
-          ) : (
-            <div
-              style={{
-                backgroundColor: '#fff7ed',
-                padding: '12px',
-                borderRadius: '8px',
-                color: '#9a3412',
-                fontSize: '14px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                flexWrap: 'wrap',
-              }}
-            >
-              <span>🔒</span> Not logged in
-              <Link
-                to="/login"
-                style={{ marginLeft: 'auto', color: '#667eea', textDecoration: 'none', fontWeight: '500' }}
+
+            <p className="text-gray-600 dark:text-gray-300 mb-6 whitespace-pre-wrap">
+              {item.description || 'No description available.'}
+            </p>
+
+            {/* File info if available */}
+            {item.fileInfo && (
+              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 mb-4 text-sm">
+                <span className="font-medium">📁 {item.fileInfo.originalName}</span>
+                {item.fileInfo.size && <span className="text-gray-500 ml-2">({formatFileSize(item.fileInfo.size)})</span>}
+              </div>
+            )}
+
+            {/* Status Messages */}
+            {!item.isFree && (
+              <div className="mb-4">
+                {canDownload && (
+                  <div className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 p-3 rounded-lg flex items-center gap-2">
+                    <span>✅</span> You own this item
+                  </div>
+                )}
+                {isPending && (
+                  <div className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400 p-3 rounded-lg flex items-center gap-2">
+                    <span>⏳</span> Payment pending verification. You will be able to download once approved.
+                  </div>
+                )}
+                {isRejected && (
+                  <div className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 p-3 rounded-lg flex items-center gap-2">
+                    <span>❌</span> Payment was rejected. Please contact support.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap gap-3">
+              {canDownload ? (
+                <button
+                  onClick={handleDownload}
+                  disabled={downloading}
+                  className="btn-primary flex items-center gap-2"
+                >
+                  {downloading ? '⏳ Preparing...' : '⬇️ Download Now'}
+                </button>
+              ) : isPending ? (
+                <button
+                  disabled
+                  className="btn-secondary flex items-center gap-2 opacity-60 cursor-not-allowed"
+                >
+                  ⏳ Pending Verification
+                </button>
+              ) : (
+                <button onClick={handleBuyNow} className="btn-primary flex items-center gap-2">
+                  💰 Buy Now {!item.isFree && `- ${formatKES(item.price)}`}
+                </button>
+              )}
+              <WhatsAppButton message={`Hello, I have a question about ${item.title}`}>
+                💬 Ask Question
+              </WhatsAppButton>
+            </div>
+
+            {/* Check Status Button for pending payments */}
+            {!item.isFree && !canDownload && !isPending && !isRejected && isAuthenticated && (
+              <button
+                onClick={checkPurchaseStatus}
+                className="mt-3 text-sm text-primary-600 hover:text-primary-700"
               >
-                Login
-              </Link>
-            </div>
-          )}
-        </div>
-
-        {/* Action buttons */}
-        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '20px' }}>
-          {canDownload ? (
-            <button
-              onClick={handleDownload}
-              disabled={downloading}
-              style={{
-                flex: '1',
-                padding: '14px 28px',
-                backgroundColor: '#48bb78',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                fontWeight: '600',
-                cursor: downloading ? 'not-allowed' : 'pointer',
-                minHeight: '48px',
-                opacity: downloading ? 0.7 : 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-              }}
-            >
-              {downloading ? '⏳ Starting download...' : '⬇️ Download Now'}
-            </button>
-          ) : (
-            <button
-              onClick={handleBuyNow}
-              disabled={checkingStatus || isPending}
-              style={{
-                flex: '1',
-                padding: '14px 28px',
-                backgroundColor: '#667eea',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                fontWeight: '600',
-                cursor: checkingStatus || isPending ? 'not-allowed' : 'pointer',
-                minHeight: '48px',
-                opacity: checkingStatus || isPending ? 0.7 : 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-              }}
-            >
-              {checkingStatus
-                ? '⏳ Checking...'
-                : isPending
-                ? '⏳ Pending Verification'
-                : `💰 Buy Now ${!item.isFree ? `- ${formatKES(item.price)}` : ''}`}
-            </button>
-          )}
-          <WhatsAppButton message={`Hello, I have a question about ${item.title}`} text="💬 Ask Question" />
-        </div>
-
-        {!item.isFree && !canDownload && !isPending && !isRejected && (
-          <button
-            onClick={checkPurchaseStatus}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: '#4299e1',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              width: '100%',
-              fontWeight: '500',
-            }}
-          >
-            🔄 Check Purchase Status
-          </button>
-        )}
-
-        {error && (
-          <div
-            style={{
-              backgroundColor: '#fed7d7',
-              padding: '12px',
-              borderRadius: '8px',
-              marginTop: '16px',
-              color: '#c53030',
-              fontSize: '14px',
-              textAlign: 'center',
-            }}
-          >
-            ⚠️ {error}
+                🔄 Check payment status
+              </button>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
+      {/* Payment Modal */}
       {showPaymentModal && (
         <PaymentModal
           item={{ ...item, type }}
           onClose={() => setShowPaymentModal(false)}
           onSuccess={() => {
             setShowPaymentModal(false);
-            setRefreshCount((prev) => prev + 1);
+            setRefreshCount(prev => prev + 1);
           }}
         />
       )}

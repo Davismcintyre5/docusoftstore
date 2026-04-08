@@ -11,6 +11,7 @@ const Footer = () => {
     <footer className="bg-gray-900 dark:bg-gray-950 text-gray-300 mt-auto">
       <div className="container-custom py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          {/* Brand */}
           <div>
             <div className="flex items-center gap-2 mb-4">
               <span className="text-2xl">📚</span>
@@ -19,6 +20,7 @@ const Footer = () => {
             <p className="text-sm text-gray-400">Your trusted source for digital documents and software solutions.</p>
           </div>
 
+          {/* Quick Links */}
           <div>
             <h3 className="text-white font-semibold mb-4">Quick Links</h3>
             <ul className="space-y-2 text-sm">
@@ -29,13 +31,21 @@ const Footer = () => {
             </ul>
           </div>
 
+          {/* Contact Info – fully dynamic */}
           <div>
             <h3 className="text-white font-semibold mb-4">Contact Us</h3>
             <ul className="space-y-2 text-sm">
-              <li className="flex items-center gap-2"><Phone size={14} /> {settings?.businessPhoneNumber || '0768784909'}</li>
-              <li className="flex items-center gap-2"><Mail size={14} /> {settings?.contactEmail || 'support@docusoft.com'}</li>
-              <li className="flex items-center gap-2"><MapPin size={14} /> {settings?.address || 'Nakuru, Kenya'}</li>
+              <li className="flex items-center gap-2">
+                <Phone size={14} /> {settings?.businessPhoneNumber || '0768784909'}
+              </li>
+              <li className="flex items-center gap-2">
+                <Mail size={14} /> {settings?.contactEmail || 'support@docusoft.com'}
+              </li>
+              <li className="flex items-center gap-2">
+                <MapPin size={14} /> {settings?.address || 'Nairobi, Kenya'}
+              </li>
             </ul>
+            {/* Social links – only show if URL exists */}
             <div className="flex gap-3 mt-4">
               {settings?.facebook && (
                 <a href={settings.facebook} target="_blank" rel="noopener noreferrer" className="hover:text-white transition">
@@ -55,6 +65,7 @@ const Footer = () => {
             </div>
           </div>
 
+          {/* Business Hours */}
           <div>
             <h3 className="text-white font-semibold mb-4">Business Hours</h3>
             <ul className="space-y-1 text-sm">
@@ -67,8 +78,8 @@ const Footer = () => {
               ) : (
                 <>
                   <li className="flex justify-between"><span>Monday - Friday:</span><span>9am - 5pm</span></li>
-                  <li className="flex justify-between"><span>Saturday:</span><span>Open</span></li>
-                  <li className="flex justify-between"><span>Sunday:</span><span>Open</span></li>
+                  <li className="flex justify-between"><span>Saturday:</span><span>Closed</span></li>
+                  <li className="flex justify-between"><span>Sunday:</span><span>Closed</span></li>
                 </>
               )}
             </ul>

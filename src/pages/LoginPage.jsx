@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@context/AuthContext';
-import api from '@services/api';
+import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
+import toast from 'react-hot-toast';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [businessName, setBusinessName] = useState('DocuSoft Store');
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [businessName, setBusinessName] = useState('DocuSoft');
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -24,15 +26,35 @@ const LoginPage = () => {
       }
     };
     fetchSettings();
+
+    const savedEmail = localStorage.getItem('rememberedEmail');
+    if (savedEmail) {
+      setEmail(savedEmail);
+      setRememberMe(true);
+    }
   }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    
+    if (!email || !password) {
+      toast.error('Please enter both email and password');
+      return;
+    }
+    
     setLoading(true);
+    
     try {
       const { data } = await api.post('/auth/login', { email, password });
       login(data.token, data.user);
+      
+      if (rememberMe) {
+        localStorage.setItem('rememberedEmail', email);
+      } else {
+        localStorage.removeItem('rememberedEmail');
+      }
+      
+      toast.success('Welcome back!');
       
       const pending = sessionStorage.getItem('pendingPurchase');
       if (pending) {
@@ -43,262 +65,141 @@ const LoginPage = () => {
         navigate(from, { replace: true });
       }
     } catch (error) {
-      setError(error.response?.data?.message || 'Invalid email or password');
+      toast.error(error.response?.data?.message || 'Invalid email or password');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        {/* Header with logo and back link */}
-        <div style={styles.headerRow}>
-          <div style={styles.logo}>
-            <span style={styles.logoIcon}>📚</span>
-            <span style={styles.logoText}>{businessName}</span>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-600 to-primary-800 p-4">
+      <div className="flex flex-col md:flex-row max-w-5xl w-full bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden">
+        {/* Left Side - Brand Section */}
+        <div className="md:w-1/2 bg-gradient-to-br from-primary-600 to-primary-800 p-8 text-white flex flex-col justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-6">
+              <span className="text-3xl">📚</span>
+              <span className="text-xl font-bold">{businessName}</span>
+            </div>
+            <h1 className="text-3xl font-bold mb-4">Welcome Back!</h1>
+            <p className="text-white/80 mb-8">Sign in to access your account and continue shopping.</p>
           </div>
-          <Link to="/" style={styles.backLink}>← Back to Store</Link>
+          
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">📄</span>
+              <div>
+                <h4 className="font-semibold">Premium Documents</h4>
+                <p className="text-sm text-white/70">Professional templates & contracts</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">💻</span>
+              <div>
+                <h4 className="font-semibold">Powerful Software</h4>
+                <p className="text-sm text-white/70">Tools to boost productivity</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">🔒</span>
+              <div>
+                <h4 className="font-semibold">Secure Payments</h4>
+                <p className="text-sm text-white/70">M-Pesa integration with full security</p>
+              </div>
+            </div>
+          </div>
         </div>
-
-        <div style={styles.welcome}>
-          <h2 style={styles.title}>Welcome Back! 👋</h2>
-          <p style={styles.subtitle}>Sign in to continue</p>
-        </div>
-
-        {error && (
-          <div style={styles.errorAlert}>
-            <span style={styles.errorIcon}>❌</span>
-            <span>{error}</span>
+        
+        {/* Right Side - Login Form */}
+        <div className="md:w-1/2 p-8">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Sign In</h2>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Enter your credentials to continue</p>
           </div>
-        )}
-
-        <form onSubmit={handleSubmit} style={styles.form}>
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>
-              <span style={styles.labelIcon}>📧</span>
-              Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              style={styles.input}
-              placeholder="your@email.com"
-              required
-            />
+          
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email Address</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">📧</span>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
+                  placeholder="you@example.com"
+                  required
+                  disabled={loading}
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔒</span>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-10 pr-10 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
+                  placeholder="••••••••"
+                  required
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? '👁️' : '👁️‍🗨️'}
+                </button>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                Remember me
+              </label>
+              <Link to="/forgot-password" className="text-sm text-primary-600 hover:text-primary-700">Forgot Password?</Link>
+            </div>
+            
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2.5 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                  Signing in...
+                </span>
+              ) : (
+                'Sign In'
+              )}
+            </button>
+          </form>
+          
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Don't have an account?{' '}
+              <Link to="/register" className="text-primary-600 hover:text-primary-700 font-medium">Create Account</Link>
+            </p>
           </div>
-
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>
-              <span style={styles.labelIcon}>🔒</span>
-              Password
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              style={styles.input}
-              placeholder="••••••••"
-              required
-            />
+          
+          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 text-center">
+            <Link to="/" className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400">← Back to Store</Link>
           </div>
-
-          <button 
-            type="submit" 
-            style={{
-              ...styles.loginBtn,
-              opacity: loading ? 0.7 : 1,
-              cursor: loading ? 'not-allowed' : 'pointer'
-            }}
-            disabled={loading}
-          >
-            {loading ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
-
-        <div style={styles.divider}>
-          <span style={styles.dividerLine}></span>
-          <span style={styles.dividerText}>or</span>
-          <span style={styles.dividerLine}></span>
-        </div>
-
-        <div style={styles.registerSection}>
-          <p style={styles.registerText}>New here?</p>
-          <Link to="/register" style={styles.registerLink}>
-            Create Account →
-          </Link>
         </div>
       </div>
     </div>
   );
-};
-
-const styles = {
-  container: {
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '20px',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-  },
-  card: {
-    backgroundColor: 'white',
-    borderRadius: '28px',
-    padding: '32px 36px',
-    width: '100%',
-    maxWidth: '520px',
-    boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
-  },
-  headerRow: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '24px',
-  },
-  logo: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-  },
-  logoIcon: {
-    fontSize: '24px',
-  },
-  logoText: {
-    fontSize: '18px',
-    fontWeight: '700',
-    color: '#2d3748',
-    letterSpacing: '-0.3px',
-  },
-  backLink: {
-    fontSize: '13px',
-    color: '#667eea',
-    textDecoration: 'none',
-    fontWeight: '500',
-    transition: 'color 0.2s',
-    ':hover': {
-      color: '#5a67d8',
-      textDecoration: 'underline',
-    },
-  },
-  welcome: {
-    textAlign: 'center',
-    marginBottom: '28px',
-  },
-  title: {
-    fontSize: '28px',
-    fontWeight: '700',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
-    marginBottom: '6px',
-  },
-  subtitle: {
-    fontSize: '14px',
-    color: '#718096',
-  },
-  errorAlert: {
-    backgroundColor: '#FED7D7',
-    border: '1px solid #FEB2B2',
-    borderRadius: '12px',
-    padding: '10px 12px',
-    marginBottom: '22px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    color: '#C53030',
-    fontSize: '13px',
-  },
-  errorIcon: { fontSize: '16px' },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '18px',
-  },
-  inputGroup: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '6px',
-  },
-  label: {
-    fontSize: '13px',
-    fontWeight: '600',
-    color: '#4a5568',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-  },
-  labelIcon: { fontSize: '14px' },
-  input: {
-    padding: '12px 14px',
-    border: '2px solid #e2e8f0',
-    borderRadius: '14px',
-    fontSize: '14px',
-    transition: 'all 0.3s',
-    outline: 'none',
-    backgroundColor: '#fafbfc',
-    ':focus': {
-      borderColor: '#667eea',
-      boxShadow: '0 0 0 3px rgba(102,126,234,0.1)',
-    },
-  },
-  loginBtn: {
-    padding: '12px',
-    backgroundColor: '#667eea',
-    color: 'white',
-    border: 'none',
-    borderRadius: '14px',
-    fontSize: '15px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    transition: 'all 0.3s',
-    marginTop: '8px',
-    ':hover': {
-      backgroundColor: '#5a67d8',
-      transform: 'translateY(-1px)',
-    },
-  },
-  divider: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    margin: '24px 0 18px',
-  },
-  dividerLine: {
-    flex: 1,
-    height: '1px',
-    background: 'linear-gradient(90deg, transparent, #e2e8f0, transparent)',
-  },
-  dividerText: {
-    color: '#a0aec0',
-    fontSize: '12px',
-    fontWeight: '500',
-  },
-  registerSection: {
-    textAlign: 'center',
-  },
-  registerText: {
-    color: '#718096',
-    fontSize: '13px',
-    marginBottom: '6px',
-  },
-  registerLink: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '6px',
-    color: '#667eea',
-    textDecoration: 'none',
-    fontSize: '14px',
-    fontWeight: '600',
-    padding: '6px 12px',
-    borderRadius: '30px',
-    transition: 'all 0.2s',
-    ':hover': {
-      backgroundColor: '#ebf4ff',
-      gap: '8px',
-    },
-  },
 };
 
 export default LoginPage;

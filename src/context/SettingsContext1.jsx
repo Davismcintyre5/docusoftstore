@@ -1,20 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../services/api';
 
-// Hardcoded values as requested
-const HARDCODED_SETTINGS = {
-  contactEmail: 'support@docusoft.com',
-  address: 'Nakuru, Kenya',
-  facebook: 'https://facebook.com/DocuSoftStore',
-  twitter: 'https://twitter.com/DocuSoftStore',
-  instagram: 'https://instagram.com/DocuSoftStore'
-};
-
 const SettingsContext = createContext();
 
 export const useSettings = () => {
   const context = useContext(SettingsContext);
-  if (!context) throw new Error('useSettings must be used within SettingsProvider');
+  if (!context) {
+    throw new Error('useSettings must be used within SettingsProvider');
+  }
   return context;
 };
 
@@ -23,11 +16,11 @@ export const SettingsProvider = ({ children }) => {
     businessName: 'DocuSoft Store',
     businessPhoneNumber: '0768784909',
     whatsappNumber: '0768784909',
-    contactEmail: HARDCODED_SETTINGS.contactEmail,
-    address: HARDCODED_SETTINGS.address,
-    facebook: HARDCODED_SETTINGS.facebook,
-    twitter: HARDCODED_SETTINGS.twitter,
-    instagram: HARDCODED_SETTINGS.instagram,
+    contactEmail: 'support@docusoft.com',
+    address: 'Nairobi, Kenya',
+    facebook: '',
+    twitter: '',
+    instagram: '',
     enableSTKPush: true,
     enableManualPayment: true,
     paymentInstructions: 'Send money to {businessNumber} via M-Pesa, then upload screenshot',
@@ -49,16 +42,7 @@ export const SettingsProvider = ({ children }) => {
   const fetchSettings = async () => {
     try {
       const { data } = await api.get('/settings');
-      // Merge API data but override hardcoded fields
-      setSettings(prev => ({
-        ...prev,
-        ...data,
-        contactEmail: HARDCODED_SETTINGS.contactEmail,
-        address: HARDCODED_SETTINGS.address,
-        facebook: HARDCODED_SETTINGS.facebook,
-        twitter: HARDCODED_SETTINGS.twitter,
-        instagram: HARDCODED_SETTINGS.instagram
-      }));
+      setSettings(prev => ({ ...prev, ...data }));
     } catch (error) {
       console.error('Failed to fetch settings:', error);
     } finally {
@@ -69,23 +53,17 @@ export const SettingsProvider = ({ children }) => {
   useEffect(() => {
     fetchSettings();
 
+    // Listen for real‑time updates from admin panel
     const handleSettingsUpdate = (event) => {
       if (event.detail) {
-        setSettings(prev => ({
-          ...prev,
-          ...event.detail,
-          contactEmail: HARDCODED_SETTINGS.contactEmail,
-          address: HARDCODED_SETTINGS.address,
-          facebook: HARDCODED_SETTINGS.facebook,
-          twitter: HARDCODED_SETTINGS.twitter,
-          instagram: HARDCODED_SETTINGS.instagram
-        }));
+        setSettings(prev => ({ ...prev, ...event.detail }));
       }
     };
     window.addEventListener('settingsUpdated', handleSettingsUpdate);
 
-    // Poll every 30 seconds as fallback
+    // Poll every 30 seconds as a fallback
     const interval = setInterval(fetchSettings, 30000);
+
     return () => {
       window.removeEventListener('settingsUpdated', handleSettingsUpdate);
       clearInterval(interval);

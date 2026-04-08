@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import api from '../../services/api';
 import { useSettings } from '../../context/SettingsContext';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 
 const Sidebar = () => {
   const [categories, setCategories] = useState([]);
+  const [expanded, setExpanded] = useState(true);
   const { settings } = useSettings();
 
   useEffect(() => {
@@ -21,35 +23,55 @@ const Sidebar = () => {
   };
 
   return (
-    <aside className="sidebar">
-      <h3 className="sidebar-title">📂 Categories</h3>
-      <ul className="sidebar-nav">
-        <li>
-          <NavLink to="/" end>🏠 All Items</NavLink>
-        </li>
-        {categories.map(cat => (
-          <li key={cat._id}>
-            <NavLink to={`/category/${cat.slug || cat._id}`}>📁 {cat.name}</NavLink>
-          </li>
-        ))}
-      </ul>
-
-      <div style={{ marginTop: '32px', padding: '20px', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', borderRadius: '12px', color: 'white' }}>
-        <h4 style={{ fontSize: '16px', marginBottom: '12px' }}>📞 Contact Us</h4>
-        <p style={{ fontSize: '13px', marginBottom: '8px' }}>
-          <strong>Phone:</strong> {settings?.businessPhoneNumber || '0768784909'}
-        </p>
-        <p style={{ fontSize: '13px', marginBottom: '8px' }}>
-          <strong>WhatsApp:</strong> {settings?.whatsappNumber || '0768784909'}
-        </p>
-        <a 
-          href={`https://wa.me/254${(settings?.whatsappNumber || '0768784909').slice(1)}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ display: 'inline-block', marginTop: '12px', padding: '8px 16px', background: '#25D366', color: 'white', textDecoration: 'none', borderRadius: '30px', fontSize: '13px' }}
+    <aside className="w-full lg:w-64 shrink-0">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden sticky top-24">
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="w-full flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 font-semibold text-gray-800 dark:text-white"
         >
-          💬 Chat on WhatsApp
-        </a>
+          <span>📂 Categories</span>
+          {expanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+        </button>
+        
+        {expanded && (
+          <nav className="p-2">
+            <NavLink
+              to="/"
+              end
+              className={({ isActive }) =>
+                `block px-3 py-2 rounded-lg text-sm transition ${isActive ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`
+              }
+            >
+              🏠 All Items
+            </NavLink>
+            {categories.map(cat => (
+              <NavLink
+                key={cat._id}
+                to={`/category/${cat.slug || cat._id}`}
+                className={({ isActive }) =>
+                  `block px-3 py-2 rounded-lg text-sm transition ${isActive ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`
+                }
+              >
+                📁 {cat.name}
+              </NavLink>
+            ))}
+          </nav>
+        )}
+
+        {/* Contact Card */}
+        <div className="m-4 p-4 bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl text-white">
+          <h4 className="font-semibold mb-2">📞 Need Help?</h4>
+          <p className="text-sm opacity-90 mb-2">Call or WhatsApp us</p>
+          <p className="text-sm font-mono mb-3">{settings?.businessPhoneNumber || '0768784909'}</p>
+          <a
+            href={`https://wa.me/254${(settings?.whatsappNumber || '0768784909').slice(1)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block w-full text-center bg-white text-primary-700 py-2 rounded-lg text-sm font-semibold hover:bg-gray-100 transition"
+          >
+            💬 Chat on WhatsApp
+          </a>
+        </div>
       </div>
     </aside>
   );

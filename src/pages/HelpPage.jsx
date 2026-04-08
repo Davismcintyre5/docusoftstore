@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useSettings } from '../context/SettingsContext';
 import WhatsAppButton from '../components/whatsapp/WhatsAppButton';
+import { Facebook, Twitter, Instagram, Mail, Phone, MapPin } from 'lucide-react';
 
 const HelpPage = () => {
   const { settings } = useSettings();
@@ -45,13 +46,37 @@ const HelpPage = () => {
           </div>
           <div style={styles.contactRow}>
             <span style={styles.contactIcon}>📧</span>
-            <div><strong>Email:</strong> support@docusoft.com</div>
+            <div><strong>Email:</strong> {settings?.contactEmail || 'support@docusoft.com'}</div>
           </div>
           <div style={styles.contactRow}>
             <span style={styles.contactIcon}>💬</span>
             <div><strong>WhatsApp:</strong> {settings?.whatsappNumber || '0768784909'}</div>
           </div>
         </div>
+
+        {/* Social Media Links */}
+        {(settings?.facebook || settings?.twitter || settings?.instagram) && (
+          <div style={styles.socialSection}>
+            <h3 style={styles.socialTitle}>Follow Us</h3>
+            <div style={styles.socialLinks}>
+              {settings.facebook && (
+                <a href={settings.facebook} target="_blank" rel="noopener noreferrer" style={styles.socialLink}>
+                  <Facebook size={20} /> Facebook
+                </a>
+              )}
+              {settings.twitter && (
+                <a href={settings.twitter} target="_blank" rel="noopener noreferrer" style={styles.socialLink}>
+                  <Twitter size={20} /> Twitter
+                </a>
+              )}
+              {settings.instagram && (
+                <a href={settings.instagram} target="_blank" rel="noopener noreferrer" style={styles.socialLink}>
+                  <Instagram size={20} /> Instagram
+                </a>
+              )}
+            </div>
+          </div>
+        )}
 
         <div style={styles.hoursSection}>
           <h3 style={styles.hoursTitle}>Business Hours</h3>
@@ -101,11 +126,15 @@ const styles = {
   faqItem: { paddingBottom: '20px' },
   faqQuestion: { fontSize: '18px', fontWeight: '600', color: '#2d3748', marginBottom: '8px' },
   faqAnswer: { fontSize: '15px', color: '#4a5568', lineHeight: '1.6' },
-  contactCard: { backgroundColor: '#ebf8ff', borderRadius: '16px', padding: '32px', marginBottom: '24px', textAlign: 'center', border: '2px dashed #4299e1' }, // Fixed border line
+  contactCard: { backgroundColor: '#ebf8ff', borderRadius: '16px', padding: '32px', marginBottom: '24px', textAlign: 'center', border: '2px dashed #4299e1' },
   contactTitle: { fontSize: '24px', fontWeight: '600', color: '#2c5282', marginBottom: '24px' },
   contactInfo: { display: 'flex', justifyContent: 'center', gap: '32px', flexWrap: 'wrap', marginBottom: '24px' },
   contactRow: { display: 'flex', alignItems: 'center', gap: '12px', backgroundColor: 'white', padding: '12px 20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' },
   contactIcon: { fontSize: '24px' },
+  socialSection: { marginBottom: '24px' },
+  socialTitle: { fontSize: '18px', fontWeight: '600', color: '#2c5282', marginBottom: '16px' },
+  socialLinks: { display: 'flex', justifyContent: 'center', gap: '20px', flexWrap: 'wrap' },
+  socialLink: { display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'white', padding: '8px 16px', borderRadius: '30px', textDecoration: 'none', color: '#2d3748', fontSize: '14px', fontWeight: '500', transition: 'all 0.2s' },
   hoursSection: { backgroundColor: 'white', borderRadius: '12px', padding: '20px', marginBottom: '24px', textAlign: 'center' },
   hoursTitle: { fontSize: '18px', fontWeight: '600', color: '#2d3748', marginBottom: '16px' },
   hoursList: { listStyle: 'none', padding: 0, display: 'inline-block', textAlign: 'left' },
@@ -120,17 +149,19 @@ const styles = {
   linkIcon: { fontSize: '20px' },
 };
 
-// Add hover styles via style tag
+// Hover styles
 const styleSheet = document.createElement('style');
 styleSheet.textContent = `
+  .social-link:hover {
+    background-color: #4299e1;
+    color: white;
+    transform: translateY(-2px);
+  }
   .link-item:hover {
     background-color: #667eea;
     color: white;
     transform: translateY(-2px);
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  }
-  .faq-item:hover .faq-question {
-    color: #667eea;
   }
   @media (max-width: 768px) {
     .contact-info {
@@ -141,11 +172,12 @@ styleSheet.textContent = `
       width: 100%;
       justify-content: center;
     }
+    .social-links {
+      flex-direction: column;
+      align-items: center;
+    }
     .links-grid {
       grid-template-columns: 1fr;
-    }
-    .faq-question {
-      font-size: 16px;
     }
   }
 `;

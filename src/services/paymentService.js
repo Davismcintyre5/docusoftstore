@@ -1,24 +1,23 @@
 import api from './api';
 
-export const initiateManualPayment = async (itemId, itemType) => {
-  const { data } = await api.post('/payments/manual', { itemId, itemType });
-  return data;
-};
-
 export const initiateSTKPush = async (itemId, itemType, phoneNumber) => {
   const { data } = await api.post('/payments/stkpush', { itemId, itemType, phoneNumber });
   return data;
 };
 
-// Upload screenshot (multipart/form-data)
+export const initiateManualPayment = async (itemId, itemType) => {
+  const { data } = await api.post('/payments/manual', { itemId, itemType });
+  return data;
+};
+
 export const uploadScreenshot = async (transactionId, formData) => {
+  // CORRECTED: use '/screenshot/' not '/upload-screenshot/'
   const { data } = await api.post(`/payments/screenshot/${transactionId}`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+    headers: { 'Content-Type': 'multipart/form-data' }
   });
   return data;
 };
 
-// Submit payment confirmation (JSON)
 export const submitPaymentConfirmation = async (transactionId, message) => {
   const { data } = await api.post(`/payments/confirmation/${transactionId}`, { message });
   return data;

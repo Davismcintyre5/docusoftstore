@@ -1,14 +1,15 @@
-// client/src/App.jsx
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { SettingsProvider } from './context/SettingsContext';
-import { useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { Toaster } from 'react-hot-toast';
 
-// Layout
+// Layout Components
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 import Sidebar from './components/layout/Sidebar';
+import MobileMenu from './components/layout/MobileMenu';
 
 // Pages
 import HomePage from './pages/HomePage';
@@ -24,58 +25,64 @@ import HelpPage from './pages/HelpPage';
 import SearchPage from './pages/SearchPage';
 import TermsPage from './pages/TermsPage';
 
+import LoadingSpinner from './components/ui/LoadingSpinner';
+
+// Layout wrapper for all pages with sidebar (including homepage)
+const MainLayout = ({ children }) => (
+  <div className="container-custom flex-1 py-6">
+    <div className="flex flex-col lg:flex-row gap-6">
+      <Sidebar />
+      <main className="flex-1 min-w-0">{children}</main>
+    </div>
+  </div>
+);
+
 function AppContent() {
   const { loading } = useAuth();
   const location = useLocation();
-  // Check if we are on login or register page
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
 
   if (loading) {
     return (
-      <div style={styles.loadingContainer}>
-        <div className="spinner"></div>
-        <p>Loading...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <LoadingSpinner text="Loading DocuSoft Store..." />
       </div>
     );
   }
 
-  // For auth pages, render without Header, Sidebar, Footer
   if (isAuthPage) {
     return (
-      <div className="app">
-        <main className="auth-container">
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-          </Routes>
-        </main>
+      <div className="min-h-screen bg-gradient-to-br from-primary-600 to-primary-800">
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+        </Routes>
       </div>
     );
   }
 
-  // Normal layout with header, sidebar, footer
   return (
-    <div className="app">
+    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
       <Header />
-      <div className="main-container">
-        <Sidebar />
-        <main className="content-area">
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/documents" element={<DocumentsPage />} />
-            <Route path="/software" element={<SoftwarePage />} />
-            <Route path="/category/:id" element={<CategoryPage />} />
-            <Route path="/document/:id" element={<ItemDetailPage type="document" />} />
-            <Route path="/software/:id" element={<ItemDetailPage type="software" />} />
-            <Route path="/checkout/:id" element={<CheckoutPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/help" element={<HelpPage />} />
-            <Route path="/search" element={<SearchPage />} />
-            <Route path="/terms" element={<TermsPage type="terms" />} />
-            <Route path="/privacy" element={<TermsPage type="privacy" />} />
-          </Routes>
-        </main>
-      </div>
+      <MobileMenu />
+      
+      <MainLayout>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/documents" element={<DocumentsPage />} />
+          <Route path="/software" element={<SoftwarePage />} />
+          <Route path="/category/:id" element={<CategoryPage />} />
+          <Route path="/document/:id" element={<ItemDetailPage type="document" />} />
+          <Route path="/software/:id" element={<ItemDetailPage type="software" />} />
+          <Route path="/checkout/:id" element={<CheckoutPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/help" element={<HelpPage />} />
+          <Route path="/search" element={<SearchPage />} />
+          <Route path="/terms" element={<TermsPage type="terms" />} />
+          <Route path="/privacy" element={<TermsPage type="privacy" />} />
+        </Routes>
+      </MainLayout>
+      
       <Footer />
     </div>
   );
@@ -86,22 +93,22 @@ function App() {
     <Router>
       <AuthProvider>
         <SettingsProvider>
-          <AppContent />
+          <ThemeProvider>
+            <Toaster
+              position="top-center"
+              toastOptions={{
+                duration: 4000,
+                style: { background: '#363636', color: '#fff' },
+                success: { duration: 3000, iconTheme: { primary: '#4ade80', secondary: '#fff' } },
+                error: { duration: 4000, iconTheme: { primary: '#ef4444', secondary: '#fff' } },
+              }}
+            />
+            <AppContent />
+          </ThemeProvider>
         </SettingsProvider>
       </AuthProvider>
     </Router>
   );
 }
-
-const styles = {
-  loadingContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '100vh',
-    backgroundColor: '#f7fafc'
-  }
-};
 
 export default App;

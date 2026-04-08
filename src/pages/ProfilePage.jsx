@@ -4,7 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
 import api from '../services/api';
 import { formatKES, formatDate } from '../utils/formatters';
-import LoadingSpinner from '../components/common/LoadingSpinner';
+import LoadingSpinner from '../components/ui/LoadingSpinner';
+import { Package, Clock, Settings, User, Mail, Phone, Calendar, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 
 const ProfilePage = () => {
   const { user } = useAuth();
@@ -13,387 +14,233 @@ const ProfilePage = () => {
   const [pendingTransactions, setPendingTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('purchases');
-  const [error, setError] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true);
-      setError('');
       try {
-        console.log('📦 Fetching profile data...');
-        
         const [ordersRes, pendingRes] = await Promise.all([
-          api.get('/orders/my-orders').catch(err => {
-            console.error('Orders fetch error:', err);
-            return { data: [] };
-          }),
-          api.get('/payments/pending').catch(err => {
-            console.error('Pending transactions fetch error:', err);
-            return { data: [] };
-          })
+          api.get('/orders/my-orders').catch(() => ({ data: [] })),
+          api.get('/payments/pending').catch(() => ({ data: [] }))
         ]);
-        
-        console.log('✅ Orders received:', ordersRes.data?.length || 0);
-        console.log('✅ Pending transactions received:', pendingRes.data?.length || 0);
-        
-        if (pendingRes.data?.length > 0) {
-          pendingRes.data.forEach(tx => {
-            console.log(`   Transaction ${tx._id}:`, {
-              hasScreenshot: !!tx.screenshotUrl,
-              hasConfirmation: !!tx.metadata?.paymentConfirmation,
-              confirmationMessage: tx.metadata?.paymentConfirmation,
-              screenshotUrl: tx.screenshotUrl
-            });
-          });
-        }
-        
         setOrders(ordersRes.data || []);
         setPendingTransactions(pendingRes.data || []);
-        
       } catch (error) {
-        console.error('❌ Failed to fetch profile data:', error);
-        setError('Failed to load profile data. Please refresh the page.');
+        console.error('Failed to fetch profile data:', error);
       } finally {
         setLoading(false);
       }
     };
-    
-    if (user) {
-      fetchData();
-    }
+    if (user) fetchData();
   }, [user]);
 
   if (loading) return <LoadingSpinner text="Loading profile..." />;
 
+  const tabs = [
+    { id: 'purchases', label: 'My Purchases', icon: Package, count: orders.length },
+    { id: 'pending', label: 'Pending Verifications', icon: Clock, count: pendingTransactions.length },
+    { id: 'settings', label: 'Account Settings', icon: Settings },
+  ];
+
   return (
-    <>
-      <style>{`
-        /* Profile Page Responsive Overrides */
-        @media (max-width: 768px) {
-          .profile-container {
-            padding: 12px !important;
-          }
-          .profile-tabs {
-            flex-wrap: wrap !important;
-            gap: 8px !important;
-          }
-          .profile-tab {
-            min-width: 120px !important;
-            font-size: 13px !important;
-            padding: 8px !important;
-          }
-          .profile-avatar {
-            width: 80px !important;
-            height: 80px !important;
-            font-size: 32px !important;
-          }
-          .profile-user-name {
-            font-size: 22px !important;
-          }
-          .profile-user-meta {
-            gap: 12px !important;
-          }
-          .profile-stats {
-            gap: 20px !important;
-          }
-          .profile-stat-value {
-            font-size: 18px !important;
-          }
-          .orders-grid,
-          .pending-grid {
-            gap: 12px !important;
-          }
-          .order-card,
-          .pending-card {
-            padding: 12px !important;
-          }
-          .order-header {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-            gap: 8px !important;
-          }
-          .order-item {
-            flex-wrap: wrap !important;
-          }
-          .item-meta {
-            flex-wrap: wrap !important;
-            gap: 8px !important;
-          }
-          .pending-grid {
-            grid-template-columns: 1fr !important;
-          }
-          .pending-card {
-            padding: 12px !important;
-          }
-          .settings-card {
-            padding: 16px !important;
-          }
-        }
-      `}</style>
-      <div className="profile-container" style={styles.container}>
-        {/* Profile Header */}
-        <div style={styles.header}>
-          <div style={styles.coverPhoto}></div>
-          <div style={styles.profileInfo}>
-            <div style={styles.avatarContainer}>
-              <div className="profile-avatar" style={styles.avatar}>
-                {user?.name?.charAt(0).toUpperCase()}
-              </div>
+    <div className="max-w-6xl mx-auto px-4 py-6 animate-fade-in">
+      {/* Profile Header */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden mb-6">
+        <div className="h-32 bg-gradient-to-r from-primary-500 to-primary-700"></div>
+        <div className="px-6 pb-6 relative">
+          <div className="flex justify-center -mt-12 mb-4">
+            <div className="w-24 h-24 rounded-full bg-gradient-to-r from-primary-500 to-primary-700 flex items-center justify-center text-white text-3xl font-bold border-4 border-white dark:border-gray-800 shadow-lg">
+              {user?.name?.charAt(0).toUpperCase()}
             </div>
-            <div style={styles.userDetails}>
-              <h1 className="profile-user-name" style={styles.userName}>{user?.name}</h1>
-              <div className="profile-user-meta" style={styles.userMeta}>
-                <span style={styles.userEmail}>📧 {user?.email}</span>
-                <span style={styles.userPhone}>📱 {user?.phone}</span>
+          </div>
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{user?.name}</h1>
+            <div className="flex flex-wrap justify-center gap-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
+              <span className="flex items-center gap-1"><Mail size={14} /> {user?.email}</span>
+              <span className="flex items-center gap-1"><Phone size={14} /> {user?.phone}</span>
+              <span className="flex items-center gap-1"><Calendar size={14} /> Member since {formatDate(user?.createdAt)}</span>
+            </div>
+            <div className="flex justify-center gap-8 mt-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">{orders.length}</div>
+                <div className="text-xs text-gray-500">Purchases</div>
               </div>
-              <div className="profile-stats" style={styles.userStats}>
-                <div style={styles.statItem}>
-                  <span className="profile-stat-value" style={styles.statValue}>{orders.length}</span>
-                  <span style={styles.statLabel}>Purchases</span>
-                </div>
-                <div style={styles.statItem}>
-                  <span className="profile-stat-value" style={styles.statValue}>{pendingTransactions.length}</span>
-                  <span style={styles.statLabel}>Pending</span>
-                </div>
-                <div style={styles.statItem}>
-                  <span className="profile-stat-value" style={styles.statValue}>
-                    {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
-                  </span>
-                  <span style={styles.statLabel}>Member Since</span>
-                </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">{pendingTransactions.length}</div>
+                <div className="text-xs text-gray-500">Pending</div>
               </div>
             </div>
           </div>
         </div>
-
-        {error && (
-          <div style={styles.errorAlert}>
-            ⚠️ {error}
-            <button onClick={() => window.location.reload()} style={styles.retryBtn}>Retry</button>
-          </div>
-        )}
-
-        {/* Tabs */}
-        <div className="profile-tabs" style={styles.tabs}>
-          <button
-            onClick={() => setActiveTab('purchases')}
-            className="profile-tab"
-            style={{ ...styles.tab, ...(activeTab === 'purchases' ? styles.activeTab : {}) }}
-          >
-            📦 My Purchases {orders.length > 0 && <span style={styles.badge}>{orders.length}</span>}
-          </button>
-          <button
-            onClick={() => setActiveTab('pending')}
-            className="profile-tab"
-            style={{ ...styles.tab, ...(activeTab === 'pending' ? styles.activeTab : {}) }}
-          >
-            ⏳ Pending Verifications {pendingTransactions.length > 0 && <span style={styles.badge}>{pendingTransactions.length}</span>}
-          </button>
-          <button
-            onClick={() => setActiveTab('settings')}
-            className="profile-tab"
-            style={{ ...styles.tab, ...(activeTab === 'settings' ? styles.activeTab : {}) }}
-          >
-            ⚙️ Account Settings
-          </button>
-        </div>
-
-        {/* Purchases Tab */}
-        {activeTab === 'purchases' && (
-          <div style={styles.content}>
-            {orders.length === 0 ? (
-              <div style={styles.emptyState}>
-                <div style={styles.emptyIcon}>🛒</div>
-                <h3>No purchases yet</h3>
-                <p>Start exploring our store and make your first purchase!</p>
-                <Link to="/documents" style={styles.browseBtn}>Browse Documents</Link>
-                <Link to="/software" style={styles.browseBtn}>Browse Software</Link>
-              </div>
-            ) : (
-              <div className="orders-grid" style={styles.ordersGrid}>
-                {orders.map(order => (
-                  <div key={order._id} className="order-card" style={styles.orderCard}>
-                    <div className="order-header" style={styles.orderHeader}>
-                      <div>
-                        <span style={styles.orderId}>#{order._id.slice(-8)}</span>
-                        <span style={styles.orderDate}>{formatDate(order.createdAt)}</span>
-                      </div>
-                      <span style={{
-                        ...styles.orderStatus,
-                        backgroundColor: order.status === 'completed' ? '#c6f6d5' : '#feebc8',
-                        color: order.status === 'completed' ? '#22543d' : '#7b341e'
-                      }}>
-                        {order.status === 'completed' ? '✅ Completed' : '⏳ Pending'}
-                      </span>
-                    </div>
-                    {order.items.map((item, idx) => (
-                      <div key={idx} className="order-item" style={styles.orderItem}>
-                        <div style={styles.itemIcon}>{item.itemType === 'document' ? '📄' : '💻'}</div>
-                        <div style={styles.itemDetails}>
-                          <div style={styles.itemTitle}>{item.title}</div>
-                          <div className="item-meta" style={styles.itemMeta}>
-                            <span>{item.itemType}</span>
-                            <span>{formatKES(item.price)}</span>
-                            <span>⬇️ Downloads: {item.downloadCount || 0}</span>
-                          </div>
-                        </div>
-                        <Link to={`/${item.itemType}/${item.itemId}`} style={styles.viewBtn}>View</Link>
-                      </div>
-                    ))}
-                    <div style={styles.orderFooter}>
-                      <strong>Total: {formatKES(order.totalAmount)}</strong>
-                      <span>📅 {formatDate(order.completedAt || order.createdAt)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Pending Tab */}
-        {activeTab === 'pending' && (
-          <div style={styles.content}>
-            {pendingTransactions.length === 0 ? (
-              <div style={styles.emptyState}>
-                <div style={styles.emptyIcon}>✅</div>
-                <h3>No pending verifications</h3>
-                <p>All your payments are up to date!</p>
-              </div>
-            ) : (
-              <div className="pending-grid" style={styles.pendingGrid}>
-                {pendingTransactions.map(tx => {
-                  const hasScreenshot = tx.screenshotUrl && tx.screenshotUrl !== null;
-                  const hasMessage = tx.metadata?.paymentConfirmation && tx.metadata.paymentConfirmation !== null;
-                  
-                  return (
-                    <div key={tx._id} className="pending-card" style={styles.pendingCard}>
-                      <div style={styles.pendingHeader}>
-                        <span>{tx.itemTitle}</span>
-                        <span style={styles.pendingAmount}>{formatKES(tx.amount)}</span>
-                      </div>
-                      <div style={styles.pendingDetails}>
-                        <p>📅 {formatDate(tx.createdAt)}</p>
-                        <p>💰 {tx.paymentMethod === 'manual' ? 'Manual Payment' : 'STK Push'}</p>
-                        
-                        {hasScreenshot && (
-                          <div style={{ marginTop: '8px' }}>
-                            <a 
-                              href={tx.screenshotUrl} 
-                              target="_blank" 
-                              rel="noopener noreferrer" 
-                              style={styles.viewScreenshotBtn}
-                            >
-                              📸 View Screenshot
-                            </a>
-                          </div>
-                        )}
-                        
-                        {hasMessage && (
-                          <div style={styles.confirmationMessageBox}>
-                            <strong>📝 Confirmation Message:</strong>
-                            <p style={styles.confirmationText}>
-                              {tx.metadata.paymentConfirmation}
-                            </p>
-                          </div>
-                        )}
-                        
-                        {!hasScreenshot && !hasMessage && (
-                          <div style={styles.noConfirmationBox}>
-                            <span>⏳ No confirmation provided yet</span>
-                            <p style={{ fontSize: '12px', marginTop: '4px' }}>
-                              Please upload a screenshot or paste your M-Pesa confirmation message.
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                      <div style={styles.pendingFooter}>
-                        ⏳ Awaiting admin verification
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Settings Tab */}
-        {activeTab === 'settings' && (
-          <div style={styles.content}>
-            <div className="settings-card" style={styles.settingsCard}>
-              <h3>Account Settings</h3>
-              <div style={styles.infoRow}><strong>Name:</strong> {user?.name}</div>
-              <div style={styles.infoRow}><strong>Email:</strong> {user?.email}</div>
-              <div style={styles.infoRow}><strong>Phone:</strong> {user?.phone}</div>
-              <div style={styles.supportSection}>
-                <h4>Need Help?</h4>
-                <p>Contact: {settings?.businessPhoneNumber}</p>
-                <a href={`https://wa.me/254${(settings?.whatsappNumber || '0768784909').slice(1)}`} target="_blank" rel="noopener noreferrer" style={styles.whatsappBtn}>
-                  💬 WhatsApp Support
-                </a>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
-    </>
-  );
-};
 
-const styles = {
-  container: { maxWidth: '1200px', margin: '0 auto', padding: '20px' },
-  header: { backgroundColor: 'white', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', marginBottom: '24px' },
-  coverPhoto: { height: '120px', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
-  profileInfo: { padding: '0 24px 24px 24px', position: 'relative' },
-  avatarContainer: { display: 'flex', justifyContent: 'center', marginTop: '-50px', marginBottom: '16px' },
-  avatar: { width: '100px', height: '100px', borderRadius: '50%', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px', fontWeight: '600', border: '4px solid white' },
-  userDetails: { textAlign: 'center' },
-  userName: { fontSize: '28px', fontWeight: '700', color: '#2d3748', marginBottom: '8px' },
-  userMeta: { display: 'flex', justifyContent: 'center', gap: '20px', marginBottom: '16px', flexWrap: 'wrap' },
-  userEmail: { color: '#718096', fontSize: '14px' },
-  userPhone: { color: '#718096', fontSize: '14px' },
-  userStats: { display: 'flex', justifyContent: 'center', gap: '30px', marginTop: '16px' },
-  statItem: { textAlign: 'center' },
-  statValue: { display: 'block', fontSize: '20px', fontWeight: '700', color: '#2d3748' },
-  statLabel: { fontSize: '12px', color: '#718096' },
-  errorAlert: { backgroundColor: '#fed7d7', padding: '16px', borderRadius: '8px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '12px' },
-  retryBtn: { marginLeft: 'auto', padding: '6px 12px', backgroundColor: '#c53030', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' },
-  tabs: { display: 'flex', gap: '10px', marginBottom: '24px', backgroundColor: 'white', padding: '8px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', flexWrap: 'wrap' },
-  tab: { flex: 1, minWidth: '140px', padding: '12px', border: 'none', borderRadius: '8px', backgroundColor: 'transparent', color: '#718096', fontSize: '14px', fontWeight: '500', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'all 0.3s' },
-  activeTab: { backgroundColor: '#667eea', color: 'white' },
-  badge: { backgroundColor: '#f56565', color: 'white', fontSize: '10px', padding: '2px 6px', borderRadius: '10px' },
-  content: { backgroundColor: 'white', borderRadius: '16px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', minHeight: '400px' },
-  emptyState: { textAlign: 'center', padding: '60px 20px' },
-  emptyIcon: { fontSize: '64px', marginBottom: '16px', opacity: 0.5 },
-  browseBtn: { display: 'inline-block', margin: '8px', padding: '12px 24px', backgroundColor: '#667eea', color: 'white', textDecoration: 'none', borderRadius: '8px' },
-  ordersGrid: { display: 'flex', flexDirection: 'column', gap: '16px' },
-  orderCard: { border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' },
-  orderHeader: { backgroundColor: '#f8fafc', padding: '16px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' },
-  orderId: { fontWeight: '600', marginRight: '12px' },
-  orderDate: { fontSize: '13px', color: '#718096' },
-  orderStatus: { padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600' },
-  orderItem: { display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderBottom: '1px solid #edf2f7' },
-  itemIcon: { fontSize: '24px' },
-  itemDetails: { flex: 1 },
-  itemTitle: { fontWeight: '500', marginBottom: '4px' },
-  itemMeta: { display: 'flex', gap: '12px', fontSize: '12px', color: '#718096' },
-  viewBtn: { padding: '6px 12px', backgroundColor: '#667eea', color: 'white', textDecoration: 'none', borderRadius: '6px', fontSize: '12px' },
-  orderFooter: { backgroundColor: '#f8fafc', padding: '16px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap' },
-  pendingGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '16px' },
-  pendingCard: { backgroundColor: '#fff3e0', borderRadius: '12px', padding: '16px', border: '1px solid #ffd8b0' },
-  pendingHeader: { display: 'flex', justifyContent: 'space-between', marginBottom: '12px', fontWeight: '600' },
-  pendingAmount: { color: '#ed8936' },
-  pendingDetails: { marginBottom: '12px', fontSize: '13px', color: '#718096' },
-  viewScreenshotBtn: { display: 'inline-block', marginTop: '8px', padding: '4px 8px', backgroundColor: '#4299e1', color: 'white', textDecoration: 'none', borderRadius: '4px', fontSize: '12px' },
-  confirmationMessageBox: { marginTop: '12px', padding: '10px', backgroundColor: '#f7fafc', borderRadius: '8px', border: '1px solid #e2e8f0' },
-  confirmationText: { marginTop: '4px', fontSize: '12px', color: '#2d3748', wordBreak: 'break-all', whiteSpace: 'pre-wrap' },
-  noConfirmationBox: { marginTop: '12px', padding: '10px', backgroundColor: '#fff7ed', borderRadius: '8px', border: '1px solid #ffd8b0', textAlign: 'center' },
-  pendingFooter: { marginTop: '12px', paddingTop: '12px', borderTop: '1px dashed #ffd8b0', color: '#ed8936', fontSize: '12px', textAlign: 'center' },
-  settingsCard: { maxWidth: '600px', margin: '0 auto' },
-  infoRow: { padding: '12px 0', borderBottom: '1px solid #e2e8f0' },
-  supportSection: { marginTop: '24px', padding: '24px', backgroundColor: '#ebf8ff', borderRadius: '12px', textAlign: 'center' },
-  whatsappBtn: { display: 'inline-block', marginTop: '12px', padding: '10px 20px', backgroundColor: '#25D366', color: 'white', textDecoration: 'none', borderRadius: '8px' }
+      {/* Tabs */}
+      <div className="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700 mb-6">
+        {tabs.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-t-lg transition ${
+              activeTab === tab.id
+                ? 'text-primary-600 border-b-2 border-primary-600 dark:text-primary-400'
+                : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+            }`}
+          >
+            <tab.icon size={16} />
+            {tab.label}
+            {tab.count > 0 && (
+              <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">{tab.count}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Purchases Tab */}
+      {activeTab === 'purchases' && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
+          {orders.length === 0 ? (
+            <div className="text-center py-12">
+              <Package size={48} className="mx-auto text-gray-400 mb-3" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No purchases yet</h3>
+              <p className="text-gray-500 dark:text-gray-400 mb-4">Start exploring our store and make your first purchase!</p>
+              <div className="flex gap-3 justify-center">
+                <Link to="/documents" className="btn-primary">Browse Documents</Link>
+                <Link to="/software" className="btn-secondary">Browse Software</Link>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {orders.map(order => (
+                <div key={order._id} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                  <div className="bg-gray-50 dark:bg-gray-700/50 px-4 py-3 flex flex-wrap justify-between items-center gap-2">
+                    <div>
+                      <span className="font-mono text-sm font-medium">#{order._id.slice(-8)}</span>
+                      <span className="text-xs text-gray-500 ml-2">{formatDate(order.createdAt)}</span>
+                    </div>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      order.status === 'completed' 
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                        : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                    }`}>
+                      {order.status === 'completed' ? 'Completed' : 'Pending'}
+                    </span>
+                  </div>
+                  {order.items.map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-3 px-4 py-3 border-t border-gray-100 dark:border-gray-700">
+                      <span className="text-2xl">{item.itemType === 'document' ? '📄' : '💻'}</span>
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900 dark:text-white">{item.title}</div>
+                        <div className="text-xs text-gray-500 flex gap-3 mt-1">
+                          <span className="capitalize">{item.itemType}</span>
+                          <span>{formatKES(item.price)}</span>
+                          <span>⬇️ {item.downloadCount || 0} downloads</span>
+                        </div>
+                      </div>
+                      <Link to={`/${item.itemType}/${item.itemId}`} className="text-primary-600 hover:text-primary-700 text-sm">View</Link>
+                    </div>
+                  ))}
+                  <div className="bg-gray-50 dark:bg-gray-700/50 px-4 py-2 text-right text-sm font-semibold">
+                    Total: {formatKES(order.totalAmount)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Pending Tab */}
+      {activeTab === 'pending' && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
+          {pendingTransactions.length === 0 ? (
+            <div className="text-center py-12">
+              <CheckCircle size={48} className="mx-auto text-green-500 mb-3" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No pending verifications</h3>
+              <p className="text-gray-500 dark:text-gray-400">All your payments are up to date!</p>
+            </div>
+          ) : (
+            <div className="grid gap-4">
+              {pendingTransactions.map(tx => {
+                const hasScreenshot = !!tx.screenshotUrl;
+                const hasMessage = tx.metadata?.paymentConfirmation;
+                return (
+                  <div key={tx._id} className="border border-orange-200 dark:border-orange-800/50 bg-orange-50 dark:bg-orange-900/10 rounded-lg p-4">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h4 className="font-semibold text-gray-900 dark:text-white">{tx.itemTitle}</h4>
+                        <p className="text-xs text-gray-500">{formatDate(tx.createdAt)}</p>
+                      </div>
+                      <span className="text-lg font-bold text-orange-600">{formatKES(tx.amount)}</span>
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                      <span className="capitalize">{tx.paymentMethod} payment</span> - Awaiting admin verification
+                    </div>
+                    {hasScreenshot && (
+                      <a href={tx.screenshotUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 mb-2">
+                        📸 View Screenshot
+                      </a>
+                    )}
+                    {hasMessage && (
+                      <div className="bg-white dark:bg-gray-800 rounded p-2 text-sm border border-gray-200 dark:border-gray-700 mt-2">
+                        <span className="font-medium">Confirmation:</span>
+                        <p className="text-gray-600 dark:text-gray-400 mt-1">{tx.metadata.paymentConfirmation}</p>
+                      </div>
+                    )}
+                    {!hasScreenshot && !hasMessage && (
+                      <div className="bg-yellow-100 dark:bg-yellow-900/30 rounded p-2 text-sm text-yellow-800 dark:text-yellow-400 mt-2">
+                        ⏳ No confirmation provided yet. Please upload screenshot or paste M-Pesa message.
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Settings Tab */}
+      {activeTab === 'settings' && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 max-w-md mx-auto">
+          <h3 className="text-lg font-semibold mb-4">Account Information</h3>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 pb-2 border-b border-gray-100 dark:border-gray-700">
+              <User size={18} className="text-gray-400" />
+              <div><div className="text-xs text-gray-500">Full Name</div><div className="font-medium">{user?.name}</div></div>
+            </div>
+            <div className="flex items-center gap-3 pb-2 border-b border-gray-100 dark:border-gray-700">
+              <Mail size={18} className="text-gray-400" />
+              <div><div className="text-xs text-gray-500">Email Address</div><div className="font-medium">{user?.email}</div></div>
+            </div>
+            <div className="flex items-center gap-3 pb-2 border-b border-gray-100 dark:border-gray-700">
+              <Phone size={18} className="text-gray-400" />
+              <div><div className="text-xs text-gray-500">Phone Number</div><div className="font-medium">{user?.phone}</div></div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Calendar size={18} className="text-gray-400" />
+              <div><div className="text-xs text-gray-500">Member Since</div><div className="font-medium">{formatDate(user?.createdAt)}</div></div>
+            </div>
+          </div>
+
+          <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <h4 className="font-semibold mb-3">Need Help?</h4>
+            <div className="space-y-2 text-sm">
+              <p>📞 Phone: {settings?.businessPhoneNumber || '0768784909'}</p>
+              <p>📧 Email: {settings?.contactEmail || 'support@docusoft.com'}</p>
+              <p>📍 Address: {settings?.address || 'Nakuru, Kenya'}</p>
+            </div>
+            <a
+              href={`https://wa.me/254${(settings?.whatsappNumber || '0768784909').slice(1)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 mt-4 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition"
+            >
+              💬 WhatsApp Support
+            </a>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default ProfilePage;
