@@ -56,9 +56,16 @@ function AppContent() {
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
       <Header />
       <MobileMenu />
-      <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="flex flex-col lg:flex-row gap-6">
-          <Sidebar />
+      
+      {/* Main content - full width on mobile, with sidebar on desktop */}
+      <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-6">
+        <div className="flex flex-col lg:flex-row lg:gap-6">
+          {/* Sidebar - hidden on mobile (uses MobileMenu component), visible on desktop */}
+          <div className="hidden lg:block lg:w-64 lg:shrink-0">
+            <Sidebar />
+          </div>
+          
+          {/* Main content - full width on mobile, takes remaining space on desktop */}
           <main className="flex-1 min-w-0">
             <Routes>
               <Route path="/" element={<HomePage />} />
