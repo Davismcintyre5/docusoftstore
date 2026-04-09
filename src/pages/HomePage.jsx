@@ -5,7 +5,7 @@ import { useSettings } from '../context/SettingsContext';
 import ProductCard from '../components/ui/ProductCard';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Pagination, Navigation } from 'swiper/modules';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Zap, Shield, RefreshCw } from 'lucide-react';
 import 'swiper/css';
 import 'swiper/css/pagination';
 import 'swiper/css/navigation';
@@ -14,7 +14,7 @@ const HomePage = () => {
   const [featured, setFeatured] = useState([]);
   const [newArrivals, setNewArrivals] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { settings, categories } = useSettings(); // Get categories from context
+  const { settings, categories } = useSettings();
 
   const gradients = [
     'from-primary-600 to-primary-800',
@@ -52,7 +52,29 @@ const HomePage = () => {
     loadProducts();
   }, []);
 
-  // Build slides from categories (from context)
+  // Why Choose Us features
+  const features = [
+    {
+      icon: Zap,
+      title: 'Instant Download',
+      description: 'Get immediate access right after payment',
+      color: 'from-yellow-500 to-orange-500'
+    },
+    {
+      icon: Shield,
+      title: 'Secure Payments',
+      description: 'M‑Pesa integration with full security',
+      color: 'from-green-500 to-teal-500'
+    },
+    {
+      icon: RefreshCw,
+      title: 'Lifetime Access',
+      description: 'Download your items anytime, anywhere',
+      color: 'from-blue-500 to-indigo-500'
+    }
+  ];
+
+  // Build slides from categories
   const welcomeSlide = {
     title: `Welcome to ${settings?.businessName || 'DocuSoft'}`,
     subtitle: 'Your one-stop shop for quality digital products',
@@ -123,6 +145,30 @@ const HomePage = () => {
           </SwiperSlide>
         ))}
       </Swiper>
+
+      {/* Why Choose Us Section */}
+      <div className="mb-16">
+        <div className="text-center mb-10">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">Why Choose Us</h2>
+          <p className="text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
+            We provide the best digital products with unmatched quality and service
+          </p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {features.map((feature, index) => (
+            <div 
+              key={index}
+              className="group relative bg-white dark:bg-gray-800 rounded-2xl p-6 text-center shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+            >
+              <div className={`w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-r ${feature.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                <feature.icon className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{feature.title}</h3>
+              <p className="text-gray-500 dark:text-gray-400">{feature.description}</p>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* Featured Products */}
       <div className="mb-12">
