@@ -102,3 +102,19 @@
     text-shadow: 0 2px 4px rgba(0,0,0,0.1);
   }
 }
+
+@layer utilities {
+  .container-custom {
+    @apply w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+  
+  /* Ensure no overflow on mobile */
+  .no-overflow {
+    overflow-x: hidden;
+  }
+  
+  /* Responsive images */
+  img, video, iframe {
+    @apply max-w-full h-auto;
+  }
+}

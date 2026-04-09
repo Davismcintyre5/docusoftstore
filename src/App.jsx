@@ -56,7 +56,7 @@ function AppContent() {
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
       <Header />
       <MobileMenu />
-      <div className="container-custom flex-1 py-6">
+      <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex flex-col lg:flex-row gap-6">
           <Sidebar />
           <main className="flex-1 min-w-0">
@@ -98,14 +98,8 @@ function App() {
               toastOptions={{
                 duration: 4000,
                 style: { background: '#363636', color: '#fff' },
-                success: {
-                  duration: 3000,
-                  iconTheme: { primary: '#4ade80', secondary: '#fff' },
-                },
-                error: {
-                  duration: 4000,
-                  iconTheme: { primary: '#ef4444', secondary: '#fff' },
-                },
+                success: { duration: 3000, iconTheme: { primary: '#4ade80', secondary: '#fff' } },
+                error: { duration: 4000, iconTheme: { primary: '#ef4444', secondary: '#fff' } },
               }}
             />
             <AppContent />

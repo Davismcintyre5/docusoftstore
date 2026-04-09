@@ -4,7 +4,7 @@ import { useSettings } from '../../context/SettingsContext';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 
 const Sidebar = () => {
-  const { settings, categories } = useSettings(); // Get categories from context
+  const { settings, categories } = useSettings();
   const [expanded, setExpanded] = useState(true);
 
   return (
@@ -19,7 +19,7 @@ const Sidebar = () => {
         </button>
         
         {expanded && (
-          <nav className="p-2">
+          <nav className="p-2 max-h-96 overflow-y-auto">
             <NavLink
               to="/"
               end
@@ -55,7 +55,7 @@ const Sidebar = () => {
         <div className="m-4 p-4 bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl text-white">
           <h4 className="font-semibold mb-2">📞 Need Help?</h4>
           <p className="text-sm opacity-90 mb-2">Call or WhatsApp us</p>
-          <p className="text-sm font-mono mb-3">{settings?.businessPhoneNumber || '0768784909'}</p>
+          <p className="text-sm font-mono mb-3 break-all">{settings?.businessPhoneNumber || '0768784909'}</p>
           <a
             href={`https://wa.me/254${(settings?.whatsappNumber || '0768784909').slice(1)}`}
             target="_blank"

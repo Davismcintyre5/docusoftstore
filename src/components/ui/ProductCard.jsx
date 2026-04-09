@@ -8,8 +8,8 @@ const ProductCard = ({ item, type }) => {
   const detailPath = isDocument ? `/document/${item._id}` : `/software/${item._id}`;
 
   return (
-    <div className="card group">
-      <Link to={detailPath}>
+    <div className="card group w-full max-w-full overflow-hidden">
+      <Link to={detailPath} className="block">
         <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center">
           {isDocument ? (
             <FileText size={64} className="text-gray-400 group-hover:scale-110 transition" />
