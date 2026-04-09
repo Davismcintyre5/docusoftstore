@@ -1,26 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import api from '../../services/api';
 import { useSettings } from '../../context/SettingsContext';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 
 const Sidebar = () => {
-  const [categories, setCategories] = useState([]);
+  const { settings, categories } = useSettings(); // Get categories from context
   const [expanded, setExpanded] = useState(true);
-  const { settings } = useSettings();
-
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  const fetchCategories = async () => {
-    try {
-      const { data } = await api.get('/categories');
-      setCategories(data);
-    } catch (error) {
-      console.error('Failed to fetch categories:', error);
-    }
-  };
 
   return (
     <aside className="w-full lg:w-64 shrink-0">
@@ -39,7 +24,11 @@ const Sidebar = () => {
               to="/"
               end
               className={({ isActive }) =>
-                `block px-3 py-2 rounded-lg text-sm transition ${isActive ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`
+                `block px-3 py-2 rounded-lg text-sm transition ${
+                  isActive 
+                    ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400' 
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`
               }
             >
               🏠 All Items
@@ -49,7 +38,11 @@ const Sidebar = () => {
                 key={cat._id}
                 to={`/category/${cat.slug || cat._id}`}
                 className={({ isActive }) =>
-                  `block px-3 py-2 rounded-lg text-sm transition ${isActive ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`
+                  `block px-3 py-2 rounded-lg text-sm transition ${
+                    isActive 
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400' 
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`
                 }
               >
                 📁 {cat.name}

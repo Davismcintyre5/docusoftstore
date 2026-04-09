@@ -25,17 +25,8 @@ import HelpPage from './pages/HelpPage';
 import SearchPage from './pages/SearchPage';
 import TermsPage from './pages/TermsPage';
 
+// Components
 import LoadingSpinner from './components/ui/LoadingSpinner';
-
-// Layout wrapper for all pages with sidebar (including homepage)
-const MainLayout = ({ children }) => (
-  <div className="container-custom flex-1 py-6">
-    <div className="flex flex-col lg:flex-row gap-6">
-      <Sidebar />
-      <main className="flex-1 min-w-0">{children}</main>
-    </div>
-  </div>
-);
 
 function AppContent() {
   const { loading } = useAuth();
@@ -65,24 +56,27 @@ function AppContent() {
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
       <Header />
       <MobileMenu />
-      
-      <MainLayout>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/documents" element={<DocumentsPage />} />
-          <Route path="/software" element={<SoftwarePage />} />
-          <Route path="/category/:id" element={<CategoryPage />} />
-          <Route path="/document/:id" element={<ItemDetailPage type="document" />} />
-          <Route path="/software/:id" element={<ItemDetailPage type="software" />} />
-          <Route path="/checkout/:id" element={<CheckoutPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/help" element={<HelpPage />} />
-          <Route path="/search" element={<SearchPage />} />
-          <Route path="/terms" element={<TermsPage type="terms" />} />
-          <Route path="/privacy" element={<TermsPage type="privacy" />} />
-        </Routes>
-      </MainLayout>
-      
+      <div className="container-custom flex-1 py-6">
+        <div className="flex flex-col lg:flex-row gap-6">
+          <Sidebar />
+          <main className="flex-1 min-w-0">
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/documents" element={<DocumentsPage />} />
+              <Route path="/software" element={<SoftwarePage />} />
+              <Route path="/category/:id" element={<CategoryPage />} />
+              <Route path="/document/:id" element={<ItemDetailPage type="document" />} />
+              <Route path="/software/:id" element={<ItemDetailPage type="software" />} />
+              <Route path="/checkout/:id" element={<CheckoutPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/help" element={<HelpPage />} />
+              <Route path="/search" element={<SearchPage />} />
+              <Route path="/terms" element={<TermsPage type="terms" />} />
+              <Route path="/privacy" element={<TermsPage type="privacy" />} />
+            </Routes>
+          </main>
+        </div>
+      </div>
       <Footer />
     </div>
   );
@@ -90,7 +84,12 @@ function AppContent() {
 
 function App() {
   return (
-    <Router>
+    <Router
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
       <AuthProvider>
         <SettingsProvider>
           <ThemeProvider>
@@ -99,8 +98,14 @@ function App() {
               toastOptions={{
                 duration: 4000,
                 style: { background: '#363636', color: '#fff' },
-                success: { duration: 3000, iconTheme: { primary: '#4ade80', secondary: '#fff' } },
-                error: { duration: 4000, iconTheme: { primary: '#ef4444', secondary: '#fff' } },
+                success: {
+                  duration: 3000,
+                  iconTheme: { primary: '#4ade80', secondary: '#fff' },
+                },
+                error: {
+                  duration: 4000,
+                  iconTheme: { primary: '#ef4444', secondary: '#fff' },
+                },
               }}
             />
             <AppContent />

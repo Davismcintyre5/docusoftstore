@@ -5,7 +5,7 @@ import { useSettings } from '../context/SettingsContext';
 import ProductCard from '../components/ui/ProductCard';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Pagination, Navigation } from 'swiper/modules';
-import { ArrowRight, MapPin, Phone } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import 'swiper/css';
 import 'swiper/css/pagination';
 import 'swiper/css/navigation';
@@ -13,10 +13,8 @@ import 'swiper/css/navigation';
 const HomePage = () => {
   const [featured, setFeatured] = useState([]);
   const [newArrivals, setNewArrivals] = useState([]);
-  const [branches, setBranches] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { settings } = useSettings();
+  const { settings, categories } = useSettings(); // Get categories from context
 
   const gradients = [
     'from-primary-600 to-primary-800',
@@ -30,12 +28,11 @@ const HomePage = () => {
   ];
 
   useEffect(() => {
-    const loadData = async () => {
+    const loadProducts = async () => {
       try {
-        const [docsRes, softRes, catsRes] = await Promise.all([
+        const [docsRes, softRes] = await Promise.all([
           api.get('/documents'),
-          api.get('/software'),
-          api.get('/categories')
+          api.get('/software')
         ]);
 
         const documents = docsRes.data.map(doc => ({ ...doc, type: 'document' }));
@@ -46,17 +43,16 @@ const HomePage = () => {
 
         setFeatured(allProducts.slice(0, 8));
         setNewArrivals(allProducts.slice(8, 12));
-        setCategories(catsRes.data);
-        setBranches([]); // No branches endpoint
       } catch (error) {
-        console.error('Failed to load home data:', error);
+        console.error('Failed to load products:', error);
       } finally {
         setLoading(false);
       }
     };
-    loadData();
+    loadProducts();
   }, []);
 
+  // Build slides from categories (from context)
   const welcomeSlide = {
     title: `Welcome to ${settings?.businessName || 'DocuSoft'}`,
     subtitle: 'Your one-stop shop for quality digital products',
@@ -160,9 +156,6 @@ const HomePage = () => {
         </div>
       )}
 
-      {/* Branches Section - DISABLED (no branches endpoint) */}
-      {/* {branches.length > 0 && ( ... )} */}
-
       {/* Call to Action */}
       <div className="bg-gradient-to-r from-primary-600 to-primary-800 rounded-xl p-8 text-center text-white">
         <h2 className="text-2xl md:text-3xl font-bold mb-4">Ready to Shop?</h2>
@@ -170,9 +163,6 @@ const HomePage = () => {
         <div className="flex flex-wrap gap-4 justify-center">
           <Link to="/documents" className="bg-white text-primary-600 px-6 py-2 rounded-full font-semibold hover:bg-gray-100 transition">
             Shop Now
-          </Link>
-          <Link to="/branches" className="border-2 border-white text-white px-6 py-2 rounded-full font-semibold hover:bg-white/10 transition">
-            Find a Store
           </Link>
         </div>
       </div>

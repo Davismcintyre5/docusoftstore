@@ -1,15 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../services/api';
 
-// Hardcoded values as requested
-const HARDCODED_SETTINGS = {
-  contactEmail: 'support@docusoft.com',
-  address: 'Nakuru, Kenya',
-  facebook: 'https://facebook.com/DocuSoftStore',
-  twitter: 'https://twitter.com/DocuSoftStore',
-  instagram: 'https://instagram.com/DocuSoftStore'
-};
-
 const SettingsContext = createContext();
 
 export const useSettings = () => {
@@ -23,11 +14,11 @@ export const SettingsProvider = ({ children }) => {
     businessName: 'DocuSoft Store',
     businessPhoneNumber: '0768784909',
     whatsappNumber: '0768784909',
-    contactEmail: HARDCODED_SETTINGS.contactEmail,
-    address: HARDCODED_SETTINGS.address,
-    facebook: HARDCODED_SETTINGS.facebook,
-    twitter: HARDCODED_SETTINGS.twitter,
-    instagram: HARDCODED_SETTINGS.instagram,
+    contactEmail: 'support@docusoft.com',
+    address: 'Nakuru, Kenya',
+    facebook: 'https://facebook.com/DocuSoftStore',
+    twitter: 'https://twitter.com/DocuSoftStore',
+    instagram: 'https://instagram.com/DocuSoftStore',
     enableSTKPush: true,
     enableManualPayment: true,
     paymentInstructions: 'Send money to {businessNumber} via M-Pesa, then upload screenshot',
@@ -44,51 +35,47 @@ export const SettingsProvider = ({ children }) => {
       sunday: 'Closed'
     }
   });
+  const [categories, setCategories] = useState([]);  // NEW
   const [loading, setLoading] = useState(true);
 
   const fetchSettings = async () => {
     try {
       const { data } = await api.get('/settings');
-      // Merge API data but override hardcoded fields
-      setSettings(prev => ({
-        ...prev,
-        ...data,
-        contactEmail: HARDCODED_SETTINGS.contactEmail,
-        address: HARDCODED_SETTINGS.address,
-        facebook: HARDCODED_SETTINGS.facebook,
-        twitter: HARDCODED_SETTINGS.twitter,
-        instagram: HARDCODED_SETTINGS.instagram
-      }));
+      setSettings(prev => ({ ...prev, ...data }));
     } catch (error) {
       console.error('Failed to fetch settings:', error);
-    } finally {
-      setLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {  // NEW
+    try {
+      const { data } = await api.get('/categories');
+      setCategories(data);
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
     }
   };
 
   useEffect(() => {
-    fetchSettings();
+    const loadData = async () => {
+      setLoading(true);
+      await Promise.all([fetchSettings(), fetchCategories()]);
+      setLoading(false);
+    };
+    loadData();
 
     const handleSettingsUpdate = (event) => {
-      if (event.detail) {
-        setSettings(prev => ({
-          ...prev,
-          ...event.detail,
-          contactEmail: HARDCODED_SETTINGS.contactEmail,
-          address: HARDCODED_SETTINGS.address,
-          facebook: HARDCODED_SETTINGS.facebook,
-          twitter: HARDCODED_SETTINGS.twitter,
-          instagram: HARDCODED_SETTINGS.instagram
-        }));
-      }
+      if (event.detail) setSettings(prev => ({ ...prev, ...event.detail }));
     };
     window.addEventListener('settingsUpdated', handleSettingsUpdate);
-
-    // Poll every 30 seconds as fallback
-    const interval = setInterval(fetchSettings, 30000);
+    
+    // Also refetch categories when settings update (in case categories changed)
+    const handleCategoriesUpdate = () => fetchCategories();
+    window.addEventListener('categoriesUpdated', handleCategoriesUpdate);
+    
     return () => {
       window.removeEventListener('settingsUpdated', handleSettingsUpdate);
-      clearInterval(interval);
+      window.removeEventListener('categoriesUpdated', handleCategoriesUpdate);
     };
   }, []);
 
@@ -99,8 +86,10 @@ export const SettingsProvider = ({ children }) => {
 
   const value = {
     settings,
+    categories,
     loading,
     formatPaymentInstructions,
+    refreshCategories: fetchCategories,  // NEW
   };
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;

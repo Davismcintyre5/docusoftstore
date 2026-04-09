@@ -11,7 +11,6 @@ export const initiateManualPayment = async (itemId, itemType) => {
 };
 
 export const uploadScreenshot = async (transactionId, formData) => {
-  // CORRECTED: use '/screenshot/' not '/upload-screenshot/'
   const { data } = await api.post(`/payments/screenshot/${transactionId}`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   });
